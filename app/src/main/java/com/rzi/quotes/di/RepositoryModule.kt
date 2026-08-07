@@ -1,8 +1,10 @@
 package com.rzi.quotes.di
 
 import com.rzi.quotes.data.prefs.ReelStateStoreImpl
+import com.rzi.quotes.data.repository.AdminRepositoryImpl
 import com.rzi.quotes.data.repository.QuoteRepositoryImpl
 import com.rzi.quotes.data.repository.TransferRepositoryImpl
+import com.rzi.quotes.domain.repository.AdminRepository
 import com.rzi.quotes.domain.repository.QuoteRepository
 import com.rzi.quotes.domain.repository.ReelStateStore
 import com.rzi.quotes.domain.repository.TransferRepository
@@ -24,4 +26,7 @@ interface RepositoryModule {
 
     @Binds @Singleton
     fun transferRepository(impl: TransferRepositoryImpl): TransferRepository
+
+    @Binds @Singleton
+    fun adminRepository(impl: AdminRepositoryImpl): AdminRepository
 }

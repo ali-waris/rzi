@@ -7,6 +7,7 @@ import androidx.paging.cachedIn
 import com.rzi.quotes.domain.model.ImportOutcome
 import com.rzi.quotes.domain.model.Quote
 import com.rzi.quotes.domain.model.QuoteDraft
+import com.rzi.quotes.domain.repository.AdminRepository
 import com.rzi.quotes.domain.repository.QuoteRepository
 import com.rzi.quotes.domain.usecase.DeleteQuote
 import com.rzi.quotes.domain.usecase.ExportDatabase
@@ -28,6 +29,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -42,6 +44,7 @@ class LibraryViewModel @Inject constructor(
     private val saveQuote: SaveQuote,
     private val importDatabaseUseCase: ImportDatabase,
     private val exportDatabaseUseCase: ExportDatabase,
+    private val adminRepository: AdminRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LibraryUiState())
@@ -74,6 +77,10 @@ class LibraryViewModel @Inject constructor(
             .flatMapLatest { key -> repository.observeMatchCount(key.query, key.tagIds) }
             .onEach { count -> _state.value = _state.value.copy(matchCount = count) }
             .launchIn(viewModelScope)
+
+        adminRepository.session
+            .onEach { isAdmin -> _state.value = _state.value.copy(isAdmin = isAdmin) }
+            .launchIn(viewModelScope)
     }
 
     fun onQueryChange(value: String) {
@@ -93,6 +100,26 @@ class LibraryViewModel @Inject constructor(
 
     fun closeEditor() {
         _state.value = _state.value.copy(isEditorOpen = false, editorQuoteId = null)
+    }
+
+    fun lock() {
+        adminRepository.lock()
+    }
+
+    fun openAdminDialog() {
+        _state.update { it.copy(isPinDialogOpen = true) }
+    }
+
+    fun closeAdminDialog() {
+        _state.update { it.copy(isPinDialogOpen = false) }
+    }
+
+    fun openChangePin() {
+        _state.update { it.copy(isChangePinOpen = true) }
+    }
+
+    fun closeChangePin() {
+        _state.update { it.copy(isChangePinOpen = false) }
     }
 
     fun delete(quote: Quote) {

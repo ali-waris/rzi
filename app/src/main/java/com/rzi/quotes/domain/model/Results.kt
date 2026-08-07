@@ -20,6 +20,12 @@ data class ImportResult(
     val skippedInvalid: Int,
 )
 
+enum class PinError {
+    INVALID_DIGITS,
+    INCORRECT,
+    MISMATCH,
+}
+
 enum class TransferError {
     UNREADABLE_FILE,
     NOT_A_DATABASE,

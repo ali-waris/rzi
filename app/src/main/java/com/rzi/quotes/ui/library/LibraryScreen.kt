@@ -3,7 +3,6 @@ package com.rzi.quotes.ui.library
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +14,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DockedSearchBar
 import androidx.compose.material3.DropdownMenu
@@ -87,6 +88,15 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
             TopAppBar(
                 title = { Text("Library") },
                 actions = {
+                    if (state.isAdmin) {
+                        IconButton(onClick = viewModel::lock) {
+                            Icon(Icons.Filled.LockOpen, contentDescription = "Lock admin")
+                        }
+                    } else {
+                        IconButton(onClick = viewModel::openAdminDialog) {
+                            Icon(Icons.Filled.Lock, contentDescription = "Admin")
+                        }
+                    }
                     IconButton(onClick = { overflowOpen = true }) {
                         Icon(Icons.Filled.MoreVert, contentDescription = "More")
                     }
@@ -95,26 +105,37 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
                         onDismissRequest = { overflowOpen = false },
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Import database") },
-                            onClick = {
-                                overflowOpen = false
-                                importLauncher.launch(arrayOf("application/octet-stream"))
-                            },
-                        )
-                        DropdownMenuItem(
                             text = { Text("Export database") },
                             onClick = {
                                 overflowOpen = false
                                 exportLauncher.launch("rzi-quotes.sqlite")
                             },
                         )
+                        if (state.isAdmin) {
+                            DropdownMenuItem(
+                                text = { Text("Import database") },
+                                onClick = {
+                                    overflowOpen = false
+                                    importLauncher.launch(arrayOf("application/octet-stream"))
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Change PIN") },
+                                onClick = {
+                                    overflowOpen = false
+                                    viewModel.openChangePin()
+                                },
+                            )
+                        }
                     }
                 },
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { viewModel.openEditor(null) }) {
-                Icon(Icons.Filled.Add, contentDescription = "Add quote")
+            if (state.isAdmin) {
+                FloatingActionButton(onClick = { viewModel.openEditor(null) }) {
+                    Icon(Icons.Filled.Add, contentDescription = "Add quote")
+                }
             }
         },
     ) { padding ->
@@ -157,7 +178,7 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
             )
 
             when {
-                state.totalCount == 0 -> EmptyState(
+                state.totalCount == 0 && state.isAdmin -> EmptyState(
                     title = "Nothing here yet",
                     actionLabel = "Add a quote",
                     onAction = { viewModel.openEditor(null) },
@@ -165,37 +186,43 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
                     onSecondary = { importLauncher.launch(arrayOf("application/octet-stream")) },
                 )
 
+                state.totalCount == 0 -> EmptyState(title = "Nothing here yet")
+
                 quotes.itemCount == 0 && state.isSearching ->
                     EmptyState(title = "No matches for '${state.query}'")
 
                 else -> LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(quotes.itemCount) { index ->
                         val quote = quotes[index] ?: return@items
-                        val dismissState = rememberSwipeToDismissBoxState(
-                            confirmValueChange = { value ->
-                                if (value == SwipeToDismissBoxValue.EndToStart) {
-                                    viewModel.delete(quote)
-                                    true
-                                } else {
-                                    false
-                                }
-                            },
-                        )
-                        SwipeToDismissBox(
-                            state = dismissState,
-                            enableDismissFromStartToEnd = false,
-                            backgroundContent = {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(MaterialTheme.colorScheme.errorContainer),
+                        if (state.isAdmin) {
+                            val dismissState = rememberSwipeToDismissBoxState(
+                                confirmValueChange = { value ->
+                                    if (value == SwipeToDismissBoxValue.EndToStart) {
+                                        viewModel.delete(quote)
+                                        true
+                                    } else {
+                                        false
+                                    }
+                                },
+                            )
+                            SwipeToDismissBox(
+                                state = dismissState,
+                                enableDismissFromStartToEnd = false,
+                                backgroundContent = {
+                                    Box(modifier = Modifier.fillMaxSize())
+                                },
+                            ) {
+                                QuoteRowItem(
+                                    quote = quote,
+                                    query = state.query,
+                                    onClick = { viewModel.openEditor(quote.id) },
                                 )
-                            },
-                        ) {
+                            }
+                        } else {
                             QuoteRowItem(
                                 quote = quote,
                                 query = state.query,
-                                onClick = { viewModel.openEditor(quote.id) },
+                                onClick = {},
                             )
                         }
                     }
@@ -208,6 +235,23 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
                 quoteId = state.editorQuoteId,
                 onDismiss = viewModel::closeEditor,
                 onMessage = viewModel::showMessage,
+            )
+        }
+
+        if (state.isPinDialogOpen) {
+            AdminPinDialog(
+                onDismiss = viewModel::closeAdminDialog,
+                onSuccess = viewModel::closeAdminDialog,
+            )
+        }
+
+        if (state.isChangePinOpen) {
+            ChangePinDialog(
+                onDismiss = viewModel::closeChangePin,
+                onSuccess = {
+                    viewModel.closeChangePin()
+                    viewModel.showMessage("PIN updated")
+                },
             )
         }
     }

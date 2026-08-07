@@ -18,6 +18,7 @@ data class ReelUiState(
     val tagFilters: List<TagFilter> = emptyList(),
     val isFilterSheetOpen: Boolean = false,
     val isLoading: Boolean = true,
+    val isAdmin: Boolean = false,
 ) {
     val isEmpty: Boolean get() = !isLoading && deck.size == 0
     val deckKey: String get() = "$mode-${filter.bookId}-${filter.tagIds}-${deck.size}"
