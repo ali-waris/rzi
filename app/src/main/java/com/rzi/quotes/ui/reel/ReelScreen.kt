@@ -44,11 +44,15 @@ fun ReelScreen(onAddQuote: () -> Unit, viewModel: ReelViewModel = hiltViewModel(
     val context = LocalContext.current
 
     if (state.isEmpty) {
-        EmptyState(
-            title = "No quotes yet",
-            actionLabel = "Add your first quote",
-            onAction = onAddQuote,
-        )
+        if (state.isAdmin) {
+            EmptyState(
+                title = "No quotes yet",
+                actionLabel = "Add your first quote",
+                onAction = onAddQuote,
+            )
+        } else {
+            EmptyState(title = "No quotes yet")
+        }
         return
     }
 

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rzi.quotes.domain.model.ReelFilter
 import com.rzi.quotes.domain.model.ReelMode
+import com.rzi.quotes.domain.repository.AdminRepository
 import com.rzi.quotes.domain.repository.QuoteRepository
 import com.rzi.quotes.domain.repository.ReelStateStore
 import com.rzi.quotes.domain.usecase.ObserveReelDeck
@@ -21,6 +22,7 @@ class ReelViewModel @Inject constructor(
     private val repository: QuoteRepository,
     private val store: ReelStateStore,
     observeReelDeck: ObserveReelDeck,
+    private val adminRepository: AdminRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ReelUiState())
@@ -46,6 +48,10 @@ class ReelViewModel @Inject constructor(
 
         repository.observeTagFilters()
             .onEach { tags -> _state.value = _state.value.copy(tagFilters = tags) }
+            .launchIn(viewModelScope)
+
+        adminRepository.session
+            .onEach { isAdmin -> _state.value = _state.value.copy(isAdmin = isAdmin) }
             .launchIn(viewModelScope)
     }
 

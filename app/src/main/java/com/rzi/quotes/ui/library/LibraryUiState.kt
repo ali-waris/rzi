@@ -11,6 +11,9 @@ data class LibraryUiState(
     val editorQuoteId: Long? = null,
     val isEditorOpen: Boolean = false,
     val isTransferInProgress: Boolean = false,
+    val isAdmin: Boolean = false,
+    val isPinDialogOpen: Boolean = false,
+    val isChangePinOpen: Boolean = false,
 ) {
     val isSearching: Boolean get() = query.isNotBlank() || selectedTagIds.isNotEmpty()
 
