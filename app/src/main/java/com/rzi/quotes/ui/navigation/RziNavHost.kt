@@ -31,6 +31,7 @@ fun RziNavHost() {
                 NavigationBarItem(
                     selected = currentRoute?.contains("Reel") == true,
                     onClick = {
+                        navController.popBackStack()
                         navController.navigate(Destination.Reel) { launchSingleTop = true }
                     },
                     icon = { Icon(Icons.Filled.AutoStories, contentDescription = null) },
@@ -39,6 +40,7 @@ fun RziNavHost() {
                 NavigationBarItem(
                     selected = currentRoute?.contains("Library") == true,
                     onClick = {
+                        navController.popBackStack()
                         navController.navigate(Destination.Library) { launchSingleTop = true }
                     },
                     icon = { Icon(Icons.Filled.CollectionsBookmark, contentDescription = null) },
