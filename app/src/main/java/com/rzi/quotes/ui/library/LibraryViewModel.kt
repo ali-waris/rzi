@@ -4,10 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
+import com.rzi.quotes.domain.model.ImportOutcome
 import com.rzi.quotes.domain.model.Quote
 import com.rzi.quotes.domain.model.QuoteDraft
 import com.rzi.quotes.domain.repository.QuoteRepository
 import com.rzi.quotes.domain.usecase.DeleteQuote
+import com.rzi.quotes.domain.usecase.ExportDatabase
+import com.rzi.quotes.domain.usecase.ImportDatabase
 import com.rzi.quotes.domain.usecase.SaveQuote
 import com.rzi.quotes.domain.usecase.SearchQuotes
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,6 +40,8 @@ class LibraryViewModel @Inject constructor(
     private val searchQuotes: SearchQuotes,
     private val deleteQuote: DeleteQuote,
     private val saveQuote: SaveQuote,
+    private val importDatabaseUseCase: ImportDatabase,
+    private val exportDatabaseUseCase: ExportDatabase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LibraryUiState())
@@ -115,6 +120,43 @@ class LibraryViewModel @Inject constructor(
 
     fun showMessage(text: String) {
         viewModelScope.launch { _messages.send(text) }
+    }
+
+    fun importDatabase(uriString: String) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isTransferInProgress = true)
+            try {
+                when (val outcome = importDatabaseUseCase(uriString)) {
+                    is ImportOutcome.Success -> {
+                        val r = outcome.result
+                        _messages.send("Imported ${r.added} quotes (${r.skippedDuplicates} duplicates, ${r.skippedInvalid} invalid skipped)")
+                    }
+                    is ImportOutcome.Failure -> {
+                        _messages.send("Import failed: ${outcome.reason.name}")
+                    }
+                }
+            } finally {
+                _state.value = _state.value.copy(isTransferInProgress = false)
+            }
+        }
+    }
+
+    fun exportDatabase(uriString: String) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isTransferInProgress = true)
+            try {
+                when (val outcome = exportDatabaseUseCase(uriString)) {
+                    is com.rzi.quotes.domain.model.ExportOutcome.Success -> {
+                        _messages.send("Export complete")
+                    }
+                    is com.rzi.quotes.domain.model.ExportOutcome.Failure -> {
+                        _messages.send("Export failed: ${outcome.reason.name}")
+                    }
+                }
+            } finally {
+                _state.value = _state.value.copy(isTransferInProgress = false)
+            }
+        }
     }
 
     companion object {

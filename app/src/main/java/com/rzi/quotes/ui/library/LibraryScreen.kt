@@ -1,11 +1,15 @@
 package com.rzi.quotes.ui.library
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -48,15 +52,23 @@ import com.rzi.quotes.ui.library.editor.QuoteEditorSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LibraryScreen(
-    onImport: () -> Unit = {},
-    onExport: () -> Unit = {},
-    viewModel: LibraryViewModel = hiltViewModel(),
-) {
+fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val quotes = viewModel.quotes.collectAsLazyPagingItems()
     val snackbarHostState = remember { SnackbarHostState() }
     var overflowOpen by remember { mutableStateOf(false) }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.importDatabase(it.toString()) }
+    }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/octet-stream")
+    ) { uri: Uri? ->
+        uri?.let { viewModel.exportDatabase(it.toString()) }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.messages.collect { message ->
@@ -84,11 +96,17 @@ fun LibraryScreen(
                     ) {
                         DropdownMenuItem(
                             text = { Text("Import database") },
-                            onClick = { overflowOpen = false; onImport() },
+                            onClick = {
+                                overflowOpen = false
+                                importLauncher.launch(arrayOf("application/octet-stream"))
+                            },
                         )
                         DropdownMenuItem(
                             text = { Text("Export database") },
-                            onClick = { overflowOpen = false; onExport() },
+                            onClick = {
+                                overflowOpen = false
+                                exportLauncher.launch("rzi-quotes.sqlite")
+                            },
                         )
                     }
                 },
@@ -112,7 +130,7 @@ fun LibraryScreen(
             ) {}
 
             if (state.isTransferInProgress) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxSize())
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
 
             if (state.tagFilters.isNotEmpty()) {
@@ -144,7 +162,7 @@ fun LibraryScreen(
                     actionLabel = "Add a quote",
                     onAction = { viewModel.openEditor(null) },
                     secondaryLabel = "Import a database",
-                    onSecondary = onImport,
+                    onSecondary = { importLauncher.launch(arrayOf("application/octet-stream")) },
                 )
 
                 quotes.itemCount == 0 && state.isSearching ->

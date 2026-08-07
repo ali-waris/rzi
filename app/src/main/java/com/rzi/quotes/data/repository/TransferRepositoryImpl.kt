@@ -11,6 +11,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Singleton
 class TransferRepositoryImpl @Inject constructor(
@@ -19,12 +21,12 @@ class TransferRepositoryImpl @Inject constructor(
     private val exporter: DatabaseExporter,
 ) : TransferRepository {
 
-    override suspend fun import(uriString: String): ImportOutcome {
+    override suspend fun import(uriString: String): ImportOutcome = withContext(Dispatchers.IO) {
         val cacheFile = File(context.cacheDir, "import_source.db")
-        return try {
+        try {
             context.contentResolver.openInputStream(Uri.parse(uriString))?.use { input ->
                 cacheFile.outputStream().use { output -> input.copyTo(output) }
-            } ?: return ImportOutcome.Failure(
+            } ?: return@withContext ImportOutcome.Failure(
                 com.rzi.quotes.domain.model.TransferError.UNREADABLE_FILE
             )
             importer.import(cacheFile)
@@ -33,16 +35,23 @@ class TransferRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun export(uriString: String): ExportOutcome {
+    override suspend fun export(uriString: String): ExportOutcome = withContext(Dispatchers.IO) {
         val target = File(context.cacheDir, "export_target.db")
-        return try {
+        try {
             val result = exporter.exportToFile(target)
             if (result is ExportOutcome.Success) {
-                context.contentResolver.openOutputStream(Uri.parse(uriString))?.use { output ->
-                    target.inputStream().use { input -> input.copyTo(output) }
-                } ?: return ExportOutcome.Failure(
-                    com.rzi.quotes.domain.model.TransferError.WRITE_FAILED
-                )
+                try {
+                    context.contentResolver.openOutputStream(Uri.parse(uriString))?.use { output ->
+                        target.inputStream().use { input -> input.copyTo(output) }
+                        output.flush()
+                    } ?: return@withContext ExportOutcome.Failure(
+                        com.rzi.quotes.domain.model.TransferError.WRITE_FAILED
+                    )
+                } catch (e: Exception) {
+                    return@withContext ExportOutcome.Failure(
+                        com.rzi.quotes.domain.model.TransferError.WRITE_FAILED
+                    )
+                }
             }
             result
         } finally {
