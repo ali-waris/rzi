@@ -7,8 +7,10 @@ import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
@@ -16,10 +18,12 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconToggleButton
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,6 +40,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hc.rzi.domain.model.Quote
 import com.hc.rzi.domain.model.ReelMode
 import com.hc.rzi.ui.components.EmptyState
+import com.hc.rzi.ui.theme.Elevation
+import com.hc.rzi.ui.theme.RziPill
+import com.hc.rzi.ui.theme.Spacing
 import kotlin.math.absoluteValue
 
 @Composable
@@ -47,6 +54,7 @@ fun ReelScreen(onAddQuote: () -> Unit, viewModel: ReelViewModel = hiltViewModel(
         if (state.isAdmin) {
             EmptyState(
                 title = "No quotes yet",
+                body = "Start your collection and watch your reel come to life.",
                 actionLabel = "Add your first quote",
                 onAction = onAddQuote,
             )
@@ -87,34 +95,14 @@ fun ReelScreen(onAddQuote: () -> Unit, viewModel: ReelViewModel = hiltViewModel(
             }
         }
 
-        Row(
-            modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = viewModel::openFilterSheet) {
-                Icon(Icons.Filled.FilterList, contentDescription = "Filter the reel")
-            }
-            IconToggleButton(
-                checked = state.mode == ReelMode.SHUFFLE,
-                onCheckedChange = { viewModel.toggleMode() },
-            ) {
-                if (state.mode == ReelMode.SHUFFLE) {
-                    Icon(Icons.Filled.Shuffle, contentDescription = "Shuffled order")
-                } else {
-                    Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Book order")
-                }
-            }
-            if (state.filter.isActive) {
-                AssistChip(
-                    onClick = viewModel::clearFilter,
-                    label = { Text("Filtered") },
-                    trailingIcon = {
-                        Icon(Icons.Filled.Close, contentDescription = "Clear filter")
-                    },
-                )
-            }
-        }
+        ReelToolbar(
+            mode = state.mode,
+            isFiltered = state.filter.isActive,
+            onOpenFilter = viewModel::openFilterSheet,
+            onToggleMode = viewModel::toggleMode,
+            onClearFilter = viewModel::clearFilter,
+            modifier = Modifier.align(Alignment.TopStart).padding(Spacing.sm),
+        )
     }
 
     if (state.isFilterSheetOpen) {
@@ -125,6 +113,70 @@ fun ReelScreen(onAddQuote: () -> Unit, viewModel: ReelViewModel = hiltViewModel(
             onApply = viewModel::applyFilter,
             onDismiss = viewModel::closeFilterSheet,
         )
+    }
+}
+
+@Composable
+private fun ReelToolbar(
+    mode: ReelMode,
+    isFiltered: Boolean,
+    onOpenFilter: () -> Unit,
+    onToggleMode: () -> Unit,
+    onClearFilter: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        modifier = modifier,
+        shape = RziPill.full,
+        color = scheme.surfaceContainer,
+        tonalElevation = Elevation.level1,
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = Spacing.xs, vertical = 2.dp),
+        ) {
+            IconButton(onClick = onOpenFilter) {
+                Icon(
+                    Icons.Filled.FilterList,
+                    contentDescription = "Filter the reel",
+                    tint = if (isFiltered) scheme.primary else LocalContentColor.current,
+                )
+            }
+            IconToggleButton(checked = mode == ReelMode.SHUFFLE, onCheckedChange = { onToggleMode() }) {
+                if (mode == ReelMode.SHUFFLE) {
+                    Icon(
+                        Icons.Filled.Shuffle,
+                        contentDescription = "Shuffled order",
+                        tint = scheme.primary,
+                    )
+                } else {
+                    Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Book order")
+                }
+            }
+            if (isFiltered) {
+                Surface(
+                    onClick = onClearFilter,
+                    shape = RziPill.full,
+                    color = scheme.primaryContainer,
+                    contentColor = scheme.onPrimaryContainer,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(start = 12.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
+                    ) {
+                        Text("Filtered", style = MaterialTheme.typography.labelMedium)
+                        Spacer(Modifier.width(2.dp))
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = "Clear filter",
+                            modifier = Modifier.width(16.dp),
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

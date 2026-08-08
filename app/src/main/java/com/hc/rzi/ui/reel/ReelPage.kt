@@ -4,20 +4,26 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -27,11 +33,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.hc.rzi.domain.model.Quote
 import com.hc.rzi.ui.theme.QUOTE_MAX_LINES
+import com.hc.rzi.ui.theme.Spacing
 import com.hc.rzi.ui.theme.quoteTextStyle
 
 @Composable
@@ -52,52 +60,88 @@ fun ReelPage(
     var showFullText by remember(quote.id) { mutableStateOf(false) }
     var isClamped by remember(quote.id) { mutableStateOf(false) }
 
-    Box(modifier = modifier.fillMaxSize().background(pageColor(quote.bookName))) {
+    val scheme = MaterialTheme.colorScheme
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    0f to pageTopColor(quote.bookName),
+                    1f to scheme.primaryContainer,
+                )
+            ),
+    ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 32.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(PaddingValues(start = Spacing.lg, end = Spacing.lg, top = 112.dp, bottom = 104.dp)),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            Text(
+                text = "\u201C",
+                style = MaterialTheme.typography.displayLarge,
+                color = scheme.primary.copy(alpha = 0.4f),
+            )
             Text(
                 text = quote.text,
                 style = quoteTextStyle(quote.text.length),
                 textAlign = TextAlign.Center,
                 maxLines = QUOTE_MAX_LINES,
                 onTextLayout = { layout -> isClamped = layout.hasVisualOverflow },
+                modifier = Modifier.padding(top = Spacing.md),
             )
             if (isClamped) {
-                TextButton(onClick = { showFullText = true }) { Text("Read more") }
+                TextButton(
+                    onClick = { showFullText = true },
+                    modifier = Modifier.padding(top = Spacing.sm),
+                ) { Text("Read more") }
             }
             Text(
                 text = buildString {
+                    append("\u2014 ")
                     append(quote.bookName)
-                    quote.pageNumber?.let { append(" · p. $it") }
+                    quote.pageNumber?.let { append(", p. $it") }
                 },
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 24.dp),
+                color = scheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = Spacing.lg),
             )
             if (quote.tags.isNotEmpty()) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    modifier = Modifier.padding(top = Spacing.md),
                 ) {
                     quote.tags.take(3).forEach { tag ->
-                        AssistChip(onClick = { onTagClick(tag) }, label = { Text(tag) })
+                        TagPill(tag = tag, onClick = { onTagClick(tag) })
                     }
                 }
             }
         }
 
         Row(
-            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.lg, vertical = Spacing.lg),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            IconButton(onClick = { onCopy(quote) }) {
-                Icon(Icons.Filled.ContentCopy, contentDescription = "Copy quote")
+            FilledTonalButton(
+                onClick = { onCopy(quote) },
+                modifier = Modifier.weight(1f).height(48.dp),
+            ) {
+                Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(Spacing.sm))
+                Text("Copy")
             }
-            IconButton(onClick = { onShare(quote) }) {
-                Icon(Icons.Filled.Share, contentDescription = "Share quote")
+            FilledTonalButton(
+                onClick = { onShare(quote) },
+                modifier = Modifier.weight(1f).height(48.dp),
+            ) {
+                Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(Spacing.sm))
+                Text("Share")
             }
         }
     }
@@ -119,15 +163,32 @@ fun ReelPage(
 }
 
 @Composable
-private fun pageColor(bookName: String): Color {
+private fun TagPill(tag: String, onClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.small,
+        color = scheme.secondaryContainer,
+        contentColor = scheme.onSecondaryContainer,
+    ) {
+        Text(
+            text = tag,
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+        )
+    }
+}
+
+@Composable
+private fun pageTopColor(bookName: String): Color {
     val scheme = MaterialTheme.colorScheme
     val palette = listOf(
-        scheme.surfaceContainerLowest,
         scheme.surfaceContainerLow,
         scheme.surfaceContainer,
         scheme.surfaceContainerHigh,
         scheme.surfaceContainerHighest,
         scheme.secondaryContainer,
+        scheme.tertiaryContainer,
     )
     return palette[bookName.lowercase().hashCode().mod(palette.size)]
 }

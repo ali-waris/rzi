@@ -20,5 +20,5 @@ fun RziTheme(
         darkTheme -> RziDarkScheme
         else -> RziLightScheme
     }
-    MaterialTheme(colorScheme = scheme, typography = RziTypography, content = content)
+    MaterialTheme(colorScheme = scheme, typography = RziTypography, shapes = RziShapes, content = content)
 }

@@ -147,6 +147,7 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
                 active = false,
                 onActiveChange = {},
                 placeholder = { Text("Search quotes, books, tags") },
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             ) {}
 
