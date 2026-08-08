@@ -23,7 +23,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.hc.rzi.domain.model.Quote
+import com.hc.rzi.ui.components.TagChip
 import com.hc.rzi.ui.theme.QUOTE_MAX_LINES
 import com.hc.rzi.ui.theme.Spacing
 import com.hc.rzi.ui.theme.quoteTextStyle
@@ -114,7 +114,7 @@ fun ReelPage(
                     modifier = Modifier.padding(top = Spacing.md),
                 ) {
                     quote.tags.take(3).forEach { tag ->
-                        TagPill(tag = tag, onClick = { onTagClick(tag) })
+                        TagChip(tag = tag, onClick = { onTagClick(tag) })
                     }
                 }
             }
@@ -158,23 +158,6 @@ fun ReelPage(
                     Text(quote.text)
                 }
             },
-        )
-    }
-}
-
-@Composable
-private fun TagPill(tag: String, onClick: () -> Unit) {
-    val scheme = MaterialTheme.colorScheme
-    Surface(
-        onClick = onClick,
-        shape = MaterialTheme.shapes.small,
-        color = scheme.secondaryContainer,
-        contentColor = scheme.onSecondaryContainer,
-    ) {
-        Text(
-            text = tag,
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
         )
     }
 }

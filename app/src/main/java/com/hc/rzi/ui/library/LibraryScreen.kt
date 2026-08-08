@@ -53,7 +53,10 @@ import com.hc.rzi.ui.library.editor.QuoteEditorSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
+fun LibraryScreen(
+    onQuoteClick: (Long) -> Unit,
+    viewModel: LibraryViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val quotes = viewModel.quotes.collectAsLazyPagingItems()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -223,7 +226,7 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
                             QuoteRowItem(
                                 quote = quote,
                                 query = state.query,
-                                onClick = {},
+                                onClick = { onQuoteClick(quote.id) },
                             )
                         }
                     }
