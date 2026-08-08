@@ -34,11 +34,11 @@ class QuoteEditorViewModel @Inject constructor(
     private val _events = Channel<EditorEvent>(Channel.BUFFERED)
     val events = _events.receiveAsFlow()
 
-    private var loaded = false
+    private var loadedId: Long? = Long.MIN_VALUE
 
     fun load(quoteId: Long?) {
-        if (loaded) return
-        loaded = true
+        if (loadedId == quoteId) return
+        loadedId = quoteId
         viewModelScope.launch {
             val quote = quoteId?.let { repository.quoteById(it) }
             _state.value = QuoteEditorUiState(
