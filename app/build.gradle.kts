@@ -13,7 +13,7 @@ android {
         applicationId = "com.hc.rzi"
         minSdk = 26
         versionCode = 1
-        versionName = "v1.08.08.2026"
+        versionName = "v2.09.08.2026"
     }
 
     signingConfigs {
