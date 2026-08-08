@@ -12,8 +12,8 @@ android {
     defaultConfig {
         applicationId = "com.hc.rzi"
         minSdk = 26
-        versionCode = 2
-        versionName = "v2.08.08.2026"
+        versionCode = 1
+        versionName = "v1.08.08.2026"
     }
 
     signingConfigs {
