@@ -63,7 +63,6 @@ hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", ve
 datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 truth = { module = "com.google.truth:truth", version.ref = "truth" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutinesTest" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 paging-compose = { module = "androidx.paging:paging-compose", version.ref = "paging" }
 

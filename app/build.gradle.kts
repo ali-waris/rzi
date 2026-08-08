@@ -7,10 +7,10 @@ plugins {
 }
 
 android {
-    namespace = "com.rzi.quotes"
+    namespace = "com.hc.rzi"
     compileSdk = 36
     defaultConfig {
-        applicationId = "com.rzi.quotes"
+        applicationId = "com.hc.rzi"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
@@ -60,7 +60,6 @@ kotlin {
 dependencies {
   val composeBom = platform(libs.compose.bom)
   implementation(composeBom)
-  androidTestImplementation(composeBom)
 
   // Core Android dependencies
   implementation(libs.androidx.core.ktx)
@@ -112,10 +111,7 @@ dependencies {
   implementation(libs.paging.compose)
   implementation(libs.kotlinx.serialization.json)
 
-  testImplementation(libs.junit)
-  testImplementation(libs.truth)
-  testImplementation(libs.robolectric)
-  testImplementation(libs.coroutines.test)
-  testImplementation(libs.androidx.test.core)
-  testImplementation(libs.room.testing)
+   testImplementation(libs.truth)
+   testImplementation(libs.robolectric)
+   testImplementation(libs.room.testing)
 }
