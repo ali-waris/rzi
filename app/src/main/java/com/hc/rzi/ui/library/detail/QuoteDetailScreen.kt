@@ -24,6 +24,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.automirrored.filled.FormatAlignLeft
+import androidx.compose.material.icons.automirrored.filled.FormatAlignRight
+import androidx.compose.material.icons.filled.FormatAlignCenter
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -73,6 +76,7 @@ fun QuoteDetailScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var showInfoSheet by remember { mutableStateOf(false) }
+    var textAlign by remember { mutableStateOf(TextAlign.Start) }
 
     LaunchedEffect(quoteId) { viewModel.load(quoteId) }
 
@@ -90,6 +94,35 @@ fun QuoteDetailScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { textAlign = TextAlign.Start }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.FormatAlignLeft,
+                            contentDescription = "Align left",
+                            tint = if (textAlign == TextAlign.Start)
+                                MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    IconButton(onClick = { textAlign = TextAlign.Center }) {
+                        Icon(
+                            Icons.Filled.FormatAlignCenter,
+                            contentDescription = "Align center",
+                            tint = if (textAlign == TextAlign.Center)
+                                MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    IconButton(onClick = { textAlign = TextAlign.End }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.FormatAlignRight,
+                            contentDescription = "Align right",
+                            tint = if (textAlign == TextAlign.End)
+                                MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 },
@@ -114,7 +147,7 @@ fun QuoteDetailScreen(
                     onAction = onBack,
                 )
 
-                quote != null -> QuoteContent(quote = quote)
+                quote != null -> QuoteContent(quote = quote, textAlign = textAlign)
             }
         }
     }
@@ -131,7 +164,7 @@ fun QuoteDetailScreen(
 }
 
 @Composable
-private fun QuoteContent(quote: Quote) {
+private fun QuoteContent(quote: Quote, textAlign: TextAlign = TextAlign.Start) {
     val scheme = MaterialTheme.colorScheme
     var fontScale by remember { mutableFloatStateOf(1f) }
     val baseStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Normal)
@@ -147,24 +180,22 @@ private fun QuoteContent(quote: Quote) {
     ) {
         Column(
             modifier = Modifier
-                .align(Alignment.Center)
+                .fillMaxWidth()
+                .align(Alignment.TopStart)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Spacing.lg, vertical = Spacing.xl),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            horizontalAlignment = Alignment.Start,
         ) {
-            Text(
-                text = "\u201C",
-                style = MaterialTheme.typography.displayLarge,
-                color = scheme.primary.copy(alpha = 0.4f),
-            )
             Text(
                 text = quote.text,
                 style = baseStyle.copy(
                     fontSize = baseStyle.fontSize * fontScale,
                     lineHeight = baseStyle.lineHeight * fontScale,
                 ),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = Spacing.md),
+                textAlign = textAlign,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = Spacing.md),
             )
         }
     }
