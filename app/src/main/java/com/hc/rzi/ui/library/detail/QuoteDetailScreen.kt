@@ -76,7 +76,7 @@ fun QuoteDetailScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var showInfoSheet by remember { mutableStateOf(false) }
-    var textAlign by remember { mutableStateOf(TextAlign.Start) }
+    var textAlign by remember { mutableStateOf(TextAlign.Center) }
 
     LaunchedEffect(quoteId) { viewModel.load(quoteId) }
 
