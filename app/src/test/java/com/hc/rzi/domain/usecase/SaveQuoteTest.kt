@@ -32,9 +32,17 @@ class SaveQuoteTest {
             return result
         }
 
-        override fun pagedQuotes(query: String, tagIds: List<Long>): Flow<PagingData<Quote>> =
-            flowOf(PagingData.empty())
-        override fun observeMatchCount(query: String, tagIds: List<Long>): Flow<Int> = flowOf(0)
+        override fun pagedQuotes(
+            query: String,
+            tagIds: List<Long>,
+            bookIds: List<Long>,
+        ): Flow<PagingData<Quote>> = flowOf(PagingData.empty())
+
+        override fun observeMatchCount(
+            query: String,
+            tagIds: List<Long>,
+            bookIds: List<Long>,
+        ): Flow<Int> = flowOf(0)
         override fun observeReelIds(mode: ReelMode, filter: ReelFilter): Flow<List<Long>> =
             flowOf(emptyList())
         override suspend fun quoteById(id: Long): Quote? = null

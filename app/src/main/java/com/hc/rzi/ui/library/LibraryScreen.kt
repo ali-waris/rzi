@@ -158,18 +158,38 @@ fun LibraryScreen(
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
 
-            if (state.tagFilters.isNotEmpty()) {
+            if (state.books.isNotEmpty() || state.tagFilters.isNotEmpty()) {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(horizontal = 16.dp),
                 ) {
-                    items(state.tagFilters.size) { index ->
-                        val filter = state.tagFilters[index]
-                        FilterChip(
-                            selected = filter.id in state.selectedTagIds,
-                            onClick = { viewModel.onTagToggle(filter.id) },
-                            label = { Text("${filter.name} (${filter.usageCount})") },
-                        )
+                    if (state.books.isNotEmpty()) {
+                        item {
+                            FilterChip(
+                                selected = state.selectedBookIds.isNotEmpty(),
+                                onClick = viewModel::openBookSheet,
+                                label = {
+                                    Text(
+                                        if (state.selectedBookIds.isEmpty()) "Books"
+                                        else "Books (${state.selectedBookIds.size})"
+                                    )
+                                },
+                            )
+                        }
+                    }
+                    if (state.tagFilters.isNotEmpty()) {
+                        item {
+                            FilterChip(
+                                selected = state.selectedTagIds.isNotEmpty(),
+                                onClick = viewModel::openTagSheet,
+                                label = {
+                                    Text(
+                                        if (state.selectedTagIds.isEmpty()) "Tags"
+                                        else "Tags (${state.selectedTagIds.size})"
+                                    )
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -193,7 +213,13 @@ fun LibraryScreen(
                 state.totalCount == 0 -> EmptyState(title = "Nothing here yet")
 
                 quotes.itemCount == 0 && state.isSearching ->
-                    EmptyState(title = "No matches for '${state.query}'")
+                    EmptyState(
+                        title = if (state.query.isBlank()) {
+                            "No matches for these filters"
+                        } else {
+                            "No matches for '${state.query}'"
+                        }
+                    )
 
                 else -> LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(quotes.itemCount) { index ->
@@ -239,6 +265,30 @@ fun LibraryScreen(
                 quoteId = state.editorQuoteId,
                 onDismiss = viewModel::closeEditor,
                 onMessage = viewModel::showMessage,
+            )
+        }
+
+        if (state.isBookSheetOpen) {
+            BookFilterSheet(
+                books = state.books,
+                selectedBookIds = state.selectedBookIds,
+                onBookToggle = viewModel::onBookToggle,
+                onDismiss = viewModel::closeBookSheet,
+                onClear = {
+                    state.selectedBookIds.forEach { viewModel.onBookToggle(it) }
+                },
+            )
+        }
+
+        if (state.isTagSheetOpen) {
+            TagFilterSheet(
+                tagFilters = state.tagFilters,
+                selectedTagIds = state.selectedTagIds,
+                onTagToggle = viewModel::onTagToggle,
+                onDismiss = viewModel::closeTagSheet,
+                onClear = {
+                    state.selectedTagIds.forEach { viewModel.onTagToggle(it) }
+                },
             )
         }
 

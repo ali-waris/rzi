@@ -34,12 +34,14 @@ interface QuoteDao {
     @Query("$ROW_SELECT WHERE q.id = :id")
     suspend fun rowById(id: Long): QuoteRow?
 
-    @Query("$ROW_SELECT WHERE $MATCH_PREDICATE ORDER BY q.createdAt DESC, q.id DESC")
+    @Query("$ROW_SELECT WHERE $LIBRARY_MATCH_PREDICATE ORDER BY q.createdAt DESC, q.id DESC")
     fun pagingSource(
         hasQuery: Int,
         ftsQuery: String,
         tagIds: List<Long>,
         tagCount: Int,
+        bookIds: List<Long>,
+        bookCount: Int,
     ): PagingSource<Int, QuoteRow>
 
     @Query("$ROW_SELECT WHERE $MATCH_PREDICATE ORDER BY q.createdAt DESC, q.id DESC")
@@ -53,7 +55,7 @@ interface QuoteDao {
     @Query(
         """
         SELECT COUNT(*) FROM quotes q JOIN books b ON b.id = q.bookId
-        WHERE $MATCH_PREDICATE
+        WHERE $LIBRARY_MATCH_PREDICATE
         """
     )
     fun observeMatchCount(
@@ -61,6 +63,8 @@ interface QuoteDao {
         ftsQuery: String,
         tagIds: List<Long>,
         tagCount: Int,
+        bookIds: List<Long>,
+        bookCount: Int,
     ): Flow<Int>
 
     @Query(
@@ -112,6 +116,17 @@ interface QuoteDao {
         const val FILTER_PREDICATE = """
             (:bookId IS NULL OR q.bookId = :bookId)
             AND $TAG_PREDICATE
+        """
+
+        const val BOOK_PREDICATE = """
+            (:bookCount = 0 OR q.bookId IN (:bookIds))
+        """
+
+        const val LIBRARY_MATCH_PREDICATE = """
+            (:hasQuery = 0
+              OR q.id IN (SELECT rowid FROM quote_fts WHERE quote_fts MATCH :ftsQuery))
+            AND $TAG_PREDICATE
+            AND $BOOK_PREDICATE
         """
     }
 }

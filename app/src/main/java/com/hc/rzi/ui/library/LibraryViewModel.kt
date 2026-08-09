@@ -33,7 +33,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-private data class SearchKey(val query: String, val tagIds: List<Long>)
+private data class SearchKey(
+    val query: String,
+    val tagIds: List<Long>,
+    val bookIds: List<Long>,
+)
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @HiltViewModel
@@ -56,12 +60,12 @@ class LibraryViewModel @Inject constructor(
     private var lastDeleted: Quote? = null
 
     private val searchKey: Flow<SearchKey> = _state
-        .map { SearchKey(it.query, it.selectedTagIds) }
+        .map { SearchKey(it.query, it.selectedTagIds, it.selectedBookIds) }
         .distinctUntilChanged()
         .debounce(250)
 
     val quotes: Flow<PagingData<Quote>> = searchKey
-        .flatMapLatest { key -> searchQuotes(key.query, key.tagIds) }
+        .flatMapLatest { key -> searchQuotes(key.query, key.tagIds, key.bookIds) }
         .cachedIn(viewModelScope)
 
     init {
@@ -69,12 +73,16 @@ class LibraryViewModel @Inject constructor(
             .onEach { filters -> _state.value = _state.value.copy(tagFilters = filters) }
             .launchIn(viewModelScope)
 
+        repository.observeBooks()
+            .onEach { books -> _state.value = _state.value.copy(books = books) }
+            .launchIn(viewModelScope)
+
         repository.observeQuoteCount()
             .onEach { total -> _state.value = _state.value.copy(totalCount = total) }
             .launchIn(viewModelScope)
 
         searchKey
-            .flatMapLatest { key -> repository.observeMatchCount(key.query, key.tagIds) }
+            .flatMapLatest { key -> repository.observeMatchCount(key.query, key.tagIds, key.bookIds) }
             .onEach { count -> _state.value = _state.value.copy(matchCount = count) }
             .launchIn(viewModelScope)
 
@@ -92,6 +100,29 @@ class LibraryViewModel @Inject constructor(
         _state.value = _state.value.copy(
             selectedTagIds = if (tagId in selected) selected - tagId else selected + tagId,
         )
+    }
+
+    fun onBookToggle(bookId: Long) {
+        val selected = _state.value.selectedBookIds
+        _state.value = _state.value.copy(
+            selectedBookIds = if (bookId in selected) selected - bookId else selected + bookId,
+        )
+    }
+
+    fun openBookSheet() {
+        _state.update { it.copy(isBookSheetOpen = true) }
+    }
+
+    fun closeBookSheet() {
+        _state.update { it.copy(isBookSheetOpen = false) }
+    }
+
+    fun openTagSheet() {
+        _state.update { it.copy(isTagSheetOpen = true) }
+    }
+
+    fun closeTagSheet() {
+        _state.update { it.copy(isTagSheetOpen = false) }
     }
 
     fun openEditor(quoteId: Long?) {
