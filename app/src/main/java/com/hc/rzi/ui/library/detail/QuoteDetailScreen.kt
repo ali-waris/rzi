@@ -4,6 +4,9 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -29,16 +33,26 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -46,7 +60,6 @@ import com.hc.rzi.domain.model.Quote
 import com.hc.rzi.ui.components.EmptyState
 import com.hc.rzi.ui.components.TagChip
 import com.hc.rzi.ui.theme.Spacing
-import com.hc.rzi.ui.theme.quoteTextStyle
 import java.text.DateFormat
 import java.util.Date
 
@@ -59,8 +72,12 @@ fun QuoteDetailScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    var showInfoSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(quoteId) { viewModel.load(quoteId) }
+
+    val quote = state.quote
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Scaffold(
         topBar = {
@@ -78,6 +95,11 @@ fun QuoteDetailScreen(
                 },
             )
         },
+        bottomBar = {
+            if (quote != null) {
+                QuoteBottomBar(quote = quote, onExpand = { showInfoSheet = true })
+            }
+        },
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             when {
@@ -92,109 +114,213 @@ fun QuoteDetailScreen(
                     onAction = onBack,
                 )
 
-                state.quote != null -> QuoteDetailContent(
-                    quote = state.quote!!,
-                    onCopy = { copyQuote(context, it) },
-                    onShare = { shareQuote(context, it) },
-                )
+                quote != null -> QuoteContent(quote = quote)
             }
         }
+    }
+
+    if (showInfoSheet && quote != null) {
+        QuoteInfoSheet(
+            quote = quote,
+            sheetState = sheetState,
+            onDismiss = { showInfoSheet = false },
+            onCopy = { copyQuote(context, it) },
+            onShare = { shareQuote(context, it) },
+        )
     }
 }
 
 @Composable
-private fun QuoteDetailContent(
+private fun QuoteContent(quote: Quote) {
+    val scheme = MaterialTheme.colorScheme
+    var fontScale by remember { mutableFloatStateOf(1f) }
+    val baseStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Normal)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .pinchToZoom(
+                onZoom = { scale ->
+                    fontScale = (fontScale * scale).coerceIn(MIN_FONT_SCALE, MAX_FONT_SCALE)
+                },
+            ),
+    ) {
+        Column(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Spacing.lg, vertical = Spacing.xl),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = "\u201C",
+                style = MaterialTheme.typography.displayLarge,
+                color = scheme.primary.copy(alpha = 0.4f),
+            )
+            Text(
+                text = quote.text,
+                style = baseStyle.copy(
+                    fontSize = baseStyle.fontSize * fontScale,
+                    lineHeight = baseStyle.lineHeight * fontScale,
+                ),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = Spacing.md),
+            )
+        }
+    }
+}
+
+private fun Modifier.pinchToZoom(onZoom: (Float) -> Unit): Modifier = pointerInput(Unit) {
+    awaitEachGesture {
+        awaitFirstDown(requireUnconsumed = false)
+        do {
+            val event = awaitPointerEvent()
+            if (event.changes.size > 1) {
+                onZoom(event.calculateZoom())
+                event.changes.forEach { it.consume() }
+            }
+        } while (event.changes.any { it.pressed })
+    }
+}
+
+private const val MIN_FONT_SCALE = 0.5f
+private const val MAX_FONT_SCALE = 3f
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun QuoteBottomBar(quote: Quote, onExpand: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        onClick = onExpand,
+        modifier = Modifier.fillMaxWidth(),
+        color = scheme.surfaceContainerLow,
+        contentColor = scheme.onSurfaceVariant,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = buildString {
+                        append(quote.bookName)
+                        quote.pageNumber?.let { append(", p. $it") }
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                    color = scheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (quote.tags.isNotEmpty()) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        modifier = Modifier.padding(top = Spacing.xs),
+                    ) {
+                        quote.tags.take(3).forEach { tag ->
+                            TagChip(tag = tag)
+                        }
+                    }
+                }
+            }
+            Icon(
+                Icons.Filled.ExpandLess,
+                contentDescription = "Show details",
+                tint = scheme.primary,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun QuoteInfoSheet(
     quote: Quote,
+    sheetState: androidx.compose.material3.SheetState,
+    onDismiss: () -> Unit,
     onCopy: (Quote) -> Unit,
     onShare: (Quote) -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = Spacing.lg),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Spacer(Modifier.height(Spacing.md))
-        Text(
-            text = "\u201C",
-            style = MaterialTheme.typography.displayLarge,
-            color = scheme.primary.copy(alpha = 0.4f),
-        )
-        Text(
-            text = quote.text,
-            style = quoteTextStyle(quote.text.length),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = Spacing.md),
-        )
-        Text(
-            text = buildString {
-                append("\u2014 ")
-                append(quote.bookName)
-                quote.pageNumber?.let { append(", p. $it") }
-            },
-            style = MaterialTheme.typography.titleMedium,
-            color = scheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = Spacing.lg),
-        )
-        if (quote.tags.isNotEmpty()) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Spacing.lg)
+                .padding(bottom = Spacing.xl),
+        ) {
+            Text(
+                text = quote.bookName,
+                style = MaterialTheme.typography.titleLarge,
+                color = scheme.onSurface,
+            )
+            quote.pageNumber?.let {
+                Text(
+                    text = "Page $it",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = scheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = Spacing.xs),
+                )
+            }
+            if (quote.tags.isNotEmpty()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    modifier = Modifier.padding(top = Spacing.md),
+                ) {
+                    quote.tags.forEach { tag -> TagChip(tag = tag) }
+                }
+            }
+
+            Spacer(Modifier.height(Spacing.lg))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            ) {
+                Column(modifier = Modifier.padding(Spacing.md)) {
+                    Text("Details", style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.height(Spacing.sm))
+                    DetailRow(label = "Book", value = quote.bookName)
+                    quote.pageNumber?.let {
+                        DetailRow(label = "Page", value = it.toString())
+                    }
+                    if (quote.tags.isNotEmpty()) {
+                        DetailRow(label = "Tags", value = quote.tags.joinToString(", "))
+                    }
+                    DetailRow(label = "Added", value = formatDate(quote.createdAt))
+                    DetailRow(label = "Last edited", value = formatDate(quote.updatedAt))
+                }
+            }
+
+            Spacer(Modifier.height(Spacing.lg))
+
             Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                modifier = Modifier.padding(top = Spacing.md),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
-                quote.tags.forEach { tag -> TagChip(tag = tag) }
-            }
-        }
-
-        Spacer(Modifier.height(Spacing.xl))
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.medium,
-            colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        ) {
-            Column(modifier = Modifier.padding(Spacing.md)) {
-                Text("Details", style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.height(Spacing.sm))
-                DetailRow(label = "Book", value = quote.bookName)
-                quote.pageNumber?.let {
-                    DetailRow(label = "Page", value = it.toString())
+                FilledTonalButton(
+                    onClick = { onCopy(quote) },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                ) {
+                    Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(Spacing.sm))
+                    Text("Copy")
                 }
-                if (quote.tags.isNotEmpty()) {
-                    DetailRow(label = "Tags", value = quote.tags.joinToString(", "))
+                FilledTonalButton(
+                    onClick = { onShare(quote) },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                ) {
+                    Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(Spacing.sm))
+                    Text("Share")
                 }
-                DetailRow(label = "Added", value = formatDate(quote.createdAt))
-                DetailRow(label = "Last edited", value = formatDate(quote.updatedAt))
             }
         }
-
-        Spacer(Modifier.height(Spacing.xl))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            FilledTonalButton(
-                onClick = { onCopy(quote) },
-                modifier = Modifier.weight(1f).height(48.dp),
-            ) {
-                Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(Spacing.sm))
-                Text("Copy")
-            }
-            FilledTonalButton(
-                onClick = { onShare(quote) },
-                modifier = Modifier.weight(1f).height(48.dp),
-            ) {
-                Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(Spacing.sm))
-                Text("Share")
-            }
-        }
-
-        Spacer(Modifier.height(Spacing.xl))
     }
 }
 

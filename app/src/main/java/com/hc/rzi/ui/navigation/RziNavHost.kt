@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoStories
@@ -37,6 +38,7 @@ fun RziNavHost() {
     val currentDestination = backStackEntry?.destination
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             val onTopLevel = currentDestination?.hierarchy?.any {
                 it.hasRoute<Destination.Reel>() || it.hasRoute<Destination.Library>()
@@ -75,7 +77,12 @@ fun RziNavHost() {
             modifier = Modifier.padding(padding),
         ) {
             composable<Destination.Reel> {
-                ReelScreen(onAddQuote = { navController.navigate(Destination.Library) })
+                ReelScreen(
+                    onAddQuote = { navController.navigate(Destination.Library) },
+                    onReadMore = { quoteId ->
+                        navController.navigate(Destination.QuoteDetail(quoteId))
+                    },
+                )
             }
             composable<Destination.Library> {
                 LibraryScreen(onQuoteClick = { quoteId ->

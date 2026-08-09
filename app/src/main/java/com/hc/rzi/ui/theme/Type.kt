@@ -5,45 +5,47 @@ import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.hc.rzi.R
 
-private val Serif = FontFamily.Serif
+private val Serif = FontFamily(Font(R.font.noto_nastaliq_urdu))
 private val Sans = FontFamily.SansSerif
 
 val RziTypography = Typography(
     displayLarge = TextStyle(
         fontFamily = Serif, fontWeight = FontWeight.Normal,
-        fontSize = 57.sp, lineHeight = 64.sp, letterSpacing = (-0.25).sp,
+        fontSize = 57.sp, lineHeight = 104.sp,
     ),
     displayMedium = TextStyle(
         fontFamily = Serif, fontWeight = FontWeight.Normal,
-        fontSize = 45.sp, lineHeight = 52.sp,
+        fontSize = 45.sp, lineHeight = 86.sp,
     ),
     displaySmall = TextStyle(
         fontFamily = Serif, fontWeight = FontWeight.Normal,
-        fontSize = 36.sp, lineHeight = 44.sp,
+        fontSize = 36.sp, lineHeight = 70.sp,
     ),
     headlineLarge = TextStyle(
         fontFamily = Serif, fontWeight = FontWeight.SemiBold,
-        fontSize = 32.sp, lineHeight = 40.sp,
+        fontSize = 32.sp, lineHeight = 64.sp,
     ),
     headlineMedium = TextStyle(
         fontFamily = Serif, fontWeight = FontWeight.SemiBold,
-        fontSize = 28.sp, lineHeight = 36.sp,
+        fontSize = 28.sp, lineHeight = 58.sp,
     ),
     headlineSmall = TextStyle(
         fontFamily = Serif, fontWeight = FontWeight.SemiBold,
-        fontSize = 24.sp, lineHeight = 32.sp,
+        fontSize = 24.sp, lineHeight = 50.sp,
     ),
     titleLarge = TextStyle(
         fontFamily = Serif, fontWeight = FontWeight.Medium,
-        fontSize = 22.sp, lineHeight = 28.sp,
+        fontSize = 22.sp, lineHeight = 46.sp,
     ),
     titleMedium = TextStyle(
         fontFamily = Serif, fontWeight = FontWeight.Medium,
-        fontSize = 16.sp, lineHeight = 24.sp, letterSpacing = 0.15.sp,
+        fontSize = 16.sp, lineHeight = 36.sp, letterSpacing = 0.15.sp,
     ),
     titleSmall = TextStyle(
         fontFamily = Sans, fontWeight = FontWeight.Medium,

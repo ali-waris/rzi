@@ -8,9 +8,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
@@ -46,7 +49,11 @@ import com.hc.rzi.ui.theme.Spacing
 import kotlin.math.absoluteValue
 
 @Composable
-fun ReelScreen(onAddQuote: () -> Unit, viewModel: ReelViewModel = hiltViewModel()) {
+fun ReelScreen(
+    onAddQuote: () -> Unit,
+    onReadMore: (Long) -> Unit,
+    viewModel: ReelViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
@@ -85,6 +92,7 @@ fun ReelScreen(onAddQuote: () -> Unit, viewModel: ReelViewModel = hiltViewModel(
                     onCopy = { copyQuote(context, it) },
                     onShare = { shareQuote(context, it) },
                     onTagClick = viewModel::filterByTag,
+                    onReadMore = { quote -> onReadMore(quote.id) },
                     modifier = Modifier.graphicsLayer {
                         alpha = 1f - offset * 0.5f
                         val scale = 1f - offset * 0.05f
@@ -101,7 +109,10 @@ fun ReelScreen(onAddQuote: () -> Unit, viewModel: ReelViewModel = hiltViewModel(
             onOpenFilter = viewModel::openFilterSheet,
             onToggleMode = viewModel::toggleMode,
             onClearFilter = viewModel::clearFilter,
-            modifier = Modifier.align(Alignment.TopStart).padding(Spacing.sm),
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(Spacing.sm),
         )
     }
 

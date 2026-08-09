@@ -13,12 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -48,6 +45,7 @@ fun ReelPage(
     onCopy: (Quote) -> Unit,
     onShare: (Quote) -> Unit,
     onTagClick: (String) -> Unit,
+    onReadMore: (Quote) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (quote == null) {
@@ -57,7 +55,6 @@ fun ReelPage(
         return
     }
 
-    var showFullText by remember(quote.id) { mutableStateOf(false) }
     var isClamped by remember(quote.id) { mutableStateOf(false) }
 
     val scheme = MaterialTheme.colorScheme
@@ -94,7 +91,7 @@ fun ReelPage(
             )
             if (isClamped) {
                 TextButton(
-                    onClick = { showFullText = true },
+                    onClick = { onReadMore(quote) },
                     modifier = Modifier.padding(top = Spacing.sm),
                 ) { Text("Read more") }
             }
@@ -144,21 +141,6 @@ fun ReelPage(
                 Text("Share")
             }
         }
-    }
-
-    if (showFullText) {
-        AlertDialog(
-            onDismissRequest = { showFullText = false },
-            confirmButton = {
-                TextButton(onClick = { showFullText = false }) { Text("Close") }
-            },
-            title = { Text(quote.bookName) },
-            text = {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    Text(quote.text)
-                }
-            },
-        )
     }
 }
 
