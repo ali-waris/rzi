@@ -82,8 +82,8 @@ class QuoteRepositoryImplTest {
             100L,
         ) as SaveQuoteResult.Saved).id
 
-        assertThat(repository.observeMatchCount("solitu", emptyList()).first()).isEqualTo(1)
-        assertThat(repository.observeMatchCount("focus", emptyList()).first()).isEqualTo(1)
+        assertThat(repository.observeMatchCount("solitu", emptyList(), emptyList()).first()).isEqualTo(1)
+        assertThat(repository.observeMatchCount("focus", emptyList(), emptyList()).first()).isEqualTo(1)
         assertThat(repository.quoteById(id)).isNotNull()
     }
 
@@ -101,8 +101,8 @@ class QuoteRepositoryImplTest {
         assertThat(quote.text).isEqualTo("new text")
         assertThat(quote.tags).containsExactly("new")
         assertThat(quote.updatedAt).isEqualTo(200L)
-        assertThat(repository.observeMatchCount("new", emptyList()).first()).isEqualTo(1)
-        assertThat(repository.observeMatchCount("old", emptyList()).first()).isEqualTo(0)
+        assertThat(repository.observeMatchCount("new", emptyList(), emptyList()).first()).isEqualTo(1)
+        assertThat(repository.observeMatchCount("old", emptyList(), emptyList()).first()).isEqualTo(0)
     }
 
     @Test

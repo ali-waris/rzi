@@ -1,22 +1,24 @@
 package com.hc.rzi.ui.reel
 
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -29,6 +31,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,7 +51,11 @@ import com.hc.rzi.ui.theme.Spacing
 import kotlin.math.absoluteValue
 
 @Composable
-fun ReelScreen(onAddQuote: () -> Unit, viewModel: ReelViewModel = hiltViewModel()) {
+fun ReelScreen(
+    onAddQuote: () -> Unit,
+    onReadMore: (Long) -> Unit,
+    viewModel: ReelViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
@@ -64,6 +73,9 @@ fun ReelScreen(onAddQuote: () -> Unit, viewModel: ReelViewModel = hiltViewModel(
         return
     }
 
+    var currentQuoteId by remember { mutableStateOf<Long?>(null) }
+    val currentQuote = currentQuoteId?.let { state.quotes[it] }
+
     Box(modifier = Modifier.fillMaxSize()) {
         key(state.deckKey) {
             val pagerState = rememberPagerState(
@@ -72,7 +84,12 @@ fun ReelScreen(onAddQuote: () -> Unit, viewModel: ReelViewModel = hiltViewModel(
             )
 
             LaunchedEffect(pagerState) {
-                snapshotFlow { pagerState.settledPage }.collect(viewModel::onPageSettled)
+                snapshotFlow { pagerState.settledPage }.collect { page ->
+                    viewModel.onPageSettled(page)
+                    if (state.deck.size > 0) {
+                        currentQuoteId = state.deck.idAt(page)
+                    }
+                }
             }
 
             VerticalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
@@ -82,9 +99,8 @@ fun ReelScreen(onAddQuote: () -> Unit, viewModel: ReelViewModel = hiltViewModel(
                     .coerceIn(0f, 1f)
                 ReelPage(
                     quote = state.quotes[quoteId],
-                    onCopy = { copyQuote(context, it) },
-                    onShare = { shareQuote(context, it) },
                     onTagClick = viewModel::filterByTag,
+                    onReadMore = { quote -> onReadMore(quote.id) },
                     modifier = Modifier.graphicsLayer {
                         alpha = 1f - offset * 0.5f
                         val scale = 1f - offset * 0.05f
@@ -98,10 +114,16 @@ fun ReelScreen(onAddQuote: () -> Unit, viewModel: ReelViewModel = hiltViewModel(
         ReelToolbar(
             mode = state.mode,
             isFiltered = state.filter.isActive,
+            filteredCount = state.deck.size,
+            currentQuote = currentQuote,
             onOpenFilter = viewModel::openFilterSheet,
             onToggleMode = viewModel::toggleMode,
             onClearFilter = viewModel::clearFilter,
-            modifier = Modifier.align(Alignment.TopStart).padding(Spacing.sm),
+            onShare = { quote -> shareQuote(context, quote) },
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(Spacing.sm),
         )
     }
 
@@ -120,9 +142,12 @@ fun ReelScreen(onAddQuote: () -> Unit, viewModel: ReelViewModel = hiltViewModel(
 private fun ReelToolbar(
     mode: ReelMode,
     isFiltered: Boolean,
+    filteredCount: Int,
+    currentQuote: Quote?,
     onOpenFilter: () -> Unit,
     onToggleMode: () -> Unit,
     onClearFilter: () -> Unit,
+    onShare: (Quote) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -166,7 +191,7 @@ private fun ReelToolbar(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(start = 12.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
                     ) {
-                        Text("Filtered", style = MaterialTheme.typography.labelMedium)
+                        Text("Filtered ($filteredCount)", style = MaterialTheme.typography.labelMedium)
                         Spacer(Modifier.width(2.dp))
                         Icon(
                             Icons.Filled.Close,
@@ -175,6 +200,13 @@ private fun ReelToolbar(
                         )
                     }
                 }
+            }
+            Spacer(Modifier.weight(1f))
+            IconButton(onClick = { currentQuote?.let(onShare) }) {
+                Icon(
+                    Icons.Filled.Share,
+                    contentDescription = "Share quote",
+                )
             }
         }
     }
@@ -185,11 +217,6 @@ private fun quoteAsText(quote: Quote): String = buildString {
     append("\n— ")
     append(quote.bookName)
     quote.pageNumber?.let { append(", p. $it") }
-}
-
-private fun copyQuote(context: Context, quote: Quote) {
-    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    clipboard.setPrimaryClip(ClipData.newPlainText("Quote", quoteAsText(quote)))
 }
 
 private fun shareQuote(context: Context, quote: Quote) {

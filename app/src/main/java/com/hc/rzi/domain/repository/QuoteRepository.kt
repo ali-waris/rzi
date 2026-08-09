@@ -12,9 +12,17 @@ import kotlinx.coroutines.flow.Flow
 
 interface QuoteRepository {
 
-    fun pagedQuotes(query: String, tagIds: List<Long>): Flow<PagingData<Quote>>
+    fun pagedQuotes(
+        query: String,
+        tagIds: List<Long>,
+        bookIds: List<Long>,
+    ): Flow<PagingData<Quote>>
 
-    fun observeMatchCount(query: String, tagIds: List<Long>): Flow<Int>
+    fun observeMatchCount(
+        query: String,
+        tagIds: List<Long>,
+        bookIds: List<Long>,
+    ): Flow<Int>
 
     fun observeReelIds(mode: ReelMode, filter: ReelFilter): Flow<List<Long>>
 

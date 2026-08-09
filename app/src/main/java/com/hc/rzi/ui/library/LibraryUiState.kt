@@ -1,11 +1,14 @@
 package com.hc.rzi.ui.library
 
+import com.hc.rzi.domain.model.Book
 import com.hc.rzi.domain.model.TagFilter
 
 data class LibraryUiState(
     val query: String = "",
     val tagFilters: List<TagFilter> = emptyList(),
     val selectedTagIds: List<Long> = emptyList(),
+    val books: List<Book> = emptyList(),
+    val selectedBookIds: List<Long> = emptyList(),
     val matchCount: Int = 0,
     val totalCount: Int = 0,
     val editorQuoteId: Long? = null,
@@ -14,8 +17,11 @@ data class LibraryUiState(
     val isAdmin: Boolean = false,
     val isPinDialogOpen: Boolean = false,
     val isChangePinOpen: Boolean = false,
+    val isBookSheetOpen: Boolean = false,
+    val isTagSheetOpen: Boolean = false,
 ) {
-    val isSearching: Boolean get() = query.isNotBlank() || selectedTagIds.isNotEmpty()
+    val isSearching: Boolean
+        get() = query.isNotBlank() || selectedTagIds.isNotEmpty() || selectedBookIds.isNotEmpty()
 
     val countLabel: String get() = if (isSearching) {
         "$matchCount ${if (matchCount == 1) "result" else "results"}"

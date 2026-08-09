@@ -107,8 +107,74 @@ class SearchQueryTest {
 
     @Test
     fun `match count matches the row count`() = runTest {
-        val count = db.quoteDao().observeMatchCount(0, "", emptyList(), 0).first()
+        val count = db.quoteDao().observeMatchCount(0, "", emptyList(), 0, emptyList(), 0).first()
         assertThat(count).isEqualTo(3)
+    }
+
+    @Test
+    fun `book filter narrows results`() = runTest {
+        val deepWorkId = db.bookDao().findByName("Deep Work")!!.id
+        val count = db.quoteDao()
+            .observeMatchCount(0, "", emptyList(), 0, listOf(deepWorkId), 1).first()
+        assertThat(count).isEqualTo(1)
+    }
+
+    @Test
+    fun `multiple books are ORed`() = runTest {
+        val deepWorkId = db.bookDao().findByName("Deep Work")!!.id
+        val weilId = db.bookDao().findByName("The Weil Reader")!!.id
+        val count = db.quoteDao()
+            .observeMatchCount(0, "", emptyList(), 0, listOf(deepWorkId, weilId), 2).first()
+        assertThat(count).isEqualTo(2)
+    }
+
+    @Test
+    fun `book and tag filters combine`() = runTest {
+        val deepWorkId = db.bookDao().findByName("Deep Work")!!.id
+        val focusId = db.tagDao().findByName("focus")!!.id
+        val workId = db.tagDao().findByName("work")!!.id
+
+        val match = db.quoteDao().observeMatchCount(
+            0, "", listOf(focusId, workId), 2, listOf(deepWorkId), 1,
+        ).first()
+        assertThat(match).isEqualTo(0)
+
+        val noBook = db.quoteDao().observeMatchCount(
+            0, "", listOf(focusId, workId), 2, emptyList(), 0,
+        ).first()
+        assertThat(noBook).isEqualTo(1)
+    }
+
+    @Test
+    fun `multiple library tags are ANDed not ORed`() = runTest {
+        val focusId = db.tagDao().findByName("focus")!!.id
+        val workId = db.tagDao().findByName("work")!!.id
+
+        val both = db.quoteDao().observeMatchCount(
+            0, "", listOf(focusId, workId), 2, emptyList(), 0,
+        ).first()
+        assertThat(both).isEqualTo(1)
+
+        val single = db.quoteDao().observeMatchCount(
+            0, "", listOf(focusId), 1, emptyList(), 0,
+        ).first()
+        assertThat(single).isEqualTo(2)
+    }
+
+    @Test
+    fun `query and book filter combine`() = runTest {
+        val deepWorkId = db.bookDao().findByName("Deep Work")!!.id
+        val weilId = db.bookDao().findByName("The Weil Reader")!!.id
+
+        val match = db.quoteDao().observeMatchCount(
+            1, "solitude", emptyList(), 0, listOf(deepWorkId), 1,
+        ).first()
+        assertThat(match).isEqualTo(1)
+
+        val noMatch = db.quoteDao().observeMatchCount(
+            1, "solitude", emptyList(), 0, listOf(weilId), 1,
+        ).first()
+        assertThat(noMatch).isEqualTo(0)
     }
 
     @Test

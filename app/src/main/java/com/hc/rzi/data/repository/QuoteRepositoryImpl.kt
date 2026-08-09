@@ -40,7 +40,11 @@ class QuoteRepositoryImpl @Inject constructor(
     private val ftsDao: QuoteFtsDao,
 ) : QuoteRepository {
 
-    override fun pagedQuotes(query: String, tagIds: List<Long>): Flow<PagingData<Quote>> {
+    override fun pagedQuotes(
+        query: String,
+        tagIds: List<Long>,
+        bookIds: List<Long>,
+    ): Flow<PagingData<Quote>> {
         val fts = FtsQuery.sanitize(query)
         return Pager(
             config = PagingConfig(pageSize = 25, enablePlaceholders = false),
@@ -50,18 +54,26 @@ class QuoteRepositoryImpl @Inject constructor(
                     ftsQuery = fts.orEmpty(),
                     tagIds = tagIds,
                     tagCount = tagIds.size,
+                    bookIds = bookIds,
+                    bookCount = bookIds.size,
                 )
             },
         ).flow.map { paging -> paging.map { row -> row.toDomain() } }
     }
 
-    override fun observeMatchCount(query: String, tagIds: List<Long>): Flow<Int> {
+    override fun observeMatchCount(
+        query: String,
+        tagIds: List<Long>,
+        bookIds: List<Long>,
+    ): Flow<Int> {
         val fts = FtsQuery.sanitize(query)
         return quoteDao.observeMatchCount(
             hasQuery = if (fts == null) 0 else 1,
             ftsQuery = fts.orEmpty(),
             tagIds = tagIds,
             tagCount = tagIds.size,
+            bookIds = bookIds,
+            bookCount = bookIds.size,
         )
     }
 
