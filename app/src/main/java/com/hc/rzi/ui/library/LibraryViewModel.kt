@@ -125,14 +125,6 @@ class LibraryViewModel @Inject constructor(
         _state.update { it.copy(isTagSheetOpen = false) }
     }
 
-    fun openEditor(quoteId: Long?) {
-        _state.value = _state.value.copy(editorQuoteId = quoteId, isEditorOpen = true)
-    }
-
-    fun closeEditor() {
-        _state.value = _state.value.copy(isEditorOpen = false, editorQuoteId = null)
-    }
-
     fun lock() {
         adminRepository.lock()
     }

@@ -11,8 +11,6 @@ data class LibraryUiState(
     val selectedBookIds: List<Long> = emptyList(),
     val matchCount: Int = 0,
     val totalCount: Int = 0,
-    val editorQuoteId: Long? = null,
-    val isEditorOpen: Boolean = false,
     val isTransferInProgress: Boolean = false,
     val isAdmin: Boolean = false,
     val isPinDialogOpen: Boolean = false,
