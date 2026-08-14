@@ -9,6 +9,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.CollectionsBookmark
 import androidx.compose.material3.Icon
@@ -18,9 +19,11 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
@@ -35,11 +38,13 @@ import com.hc.rzi.ui.theme.AppEasing
 import com.hc.rzi.ui.theme.Duration
 
 @Composable
-fun RziNavHost() {
+fun RziNavHost(
+    viewModel: NavigationViewModel = hiltViewModel(),
+) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
-    val isDark = isSystemInDarkTheme()
+    val isAdmin by viewModel.isAdmin.collectAsState()
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -62,6 +67,16 @@ fun RziNavHost() {
                         icon = { Icon(Icons.Filled.AutoStories, contentDescription = null) },
                         label = { Text("Reel") },
                     )
+                    if (isAdmin) {
+                        NavigationBarItem(
+                            selected = false,
+                            onClick = {
+                                navController.navigate(Destination.QuoteDetail(null))
+                            },
+                            icon = { Icon(Icons.Filled.Add, contentDescription = "Add quote") },
+                            label = { Text("Add") },
+                        )
+                    }
                     NavigationBarItem(
                         selected = currentDestination.hierarchy.any {
                             it.hasRoute<Destination.Library>()
@@ -70,7 +85,12 @@ fun RziNavHost() {
                             navController.popBackStack()
                             navController.navigate(Destination.Library) { launchSingleTop = true }
                         },
-                        icon = { Icon(Icons.Filled.CollectionsBookmark, contentDescription = null) },
+                        icon = {
+                            Icon(
+                                Icons.Filled.CollectionsBookmark,
+                                contentDescription = null
+                            )
+                        },
                         label = { Text("Library") },
                     )
                 }
@@ -91,7 +111,7 @@ fun RziNavHost() {
                 )
             }
             composable<Destination.Library> {
-                LibraryScreen(onQuoteClick = { quoteId ->
+                LibraryScreen(onQuoteClick = { quoteId: Long? ->
                     navController.navigate(Destination.QuoteDetail(quoteId))
                 })
             }

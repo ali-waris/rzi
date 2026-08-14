@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.MoreVert
@@ -22,7 +21,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -49,12 +47,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.hc.rzi.ui.components.EmptyState
-import com.hc.rzi.ui.library.editor.QuoteEditorSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(
-    onQuoteClick: (Long) -> Unit,
+    onQuoteClick: (Long?) -> Unit,
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -134,13 +131,6 @@ fun LibraryScreen(
                 },
             )
         },
-        floatingActionButton = {
-            if (state.isAdmin) {
-                FloatingActionButton(onClick = { viewModel.openEditor(null) }) {
-                    Icon(Icons.Filled.Add, contentDescription = "Add quote")
-                }
-            }
-        },
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             DockedSearchBar(
@@ -205,7 +195,7 @@ fun LibraryScreen(
                 state.totalCount == 0 && state.isAdmin -> EmptyState(
                     title = "Nothing here yet",
                     actionLabel = "Add a quote",
-                    onAction = { viewModel.openEditor(null) },
+                    onAction = { onQuoteClick(null) },
                     secondaryLabel = "Import a database",
                     onSecondary = { importLauncher.launch(arrayOf("application/octet-stream")) },
                 )
@@ -245,7 +235,7 @@ fun LibraryScreen(
                                 QuoteRowItem(
                                     quote = quote,
                                     query = state.query,
-                                    onClick = { viewModel.openEditor(quote.id) },
+                                    onClick = { onQuoteClick(quote.id) },
                                 )
                             }
                         } else {
@@ -258,14 +248,6 @@ fun LibraryScreen(
                     }
                 }
             }
-        }
-
-        if (state.isEditorOpen) {
-            QuoteEditorSheet(
-                quoteId = state.editorQuoteId,
-                onDismiss = viewModel::closeEditor,
-                onMessage = viewModel::showMessage,
-            )
         }
 
         if (state.isBookSheetOpen) {
