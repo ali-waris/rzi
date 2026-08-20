@@ -730,14 +730,14 @@ private fun TagPickerScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = Spacing.md),
+                                .padding(vertical = Spacing.sm),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Checkbox(
                                 checked = isSelected,
                                 onCheckedChange = { onToggleTag(tag) },
                             )
-                            Spacer(modifier = Modifier.width(Spacing.md))
+                            Spacer(modifier = Modifier.width(Spacing.sm))
                             Text(
                                 text = tag,
                                 style = MaterialTheme.typography.bodyLarge,

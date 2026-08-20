@@ -156,7 +156,7 @@ class QuoteRepositoryImpl @Inject constructor(
 
     override fun bookSuggestions(prefix: String): Flow<List<String>> = bookDao.suggest(prefix)
 
-    override fun tagSuggestions(prefix: String): Flow<List<String>> = tagDao.suggest(prefix)
+    override fun allTagNames(): Flow<List<String>> = tagDao.allNames()
 
     override fun observeTagFilters(): Flow<List<TagFilter>> =
         tagDao.observeFilters().map { rows ->
