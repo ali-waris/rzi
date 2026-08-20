@@ -16,8 +16,17 @@ interface BookDao {
     @Query("SELECT * FROM books WHERE name = :name COLLATE NOCASE LIMIT 1")
     suspend fun findByName(name: String): BookEntity?
 
+    @Query(
+        """
+        SELECT b.id AS id, b.name AS name, COUNT(q.id) AS quoteCount
+        FROM books b LEFT JOIN quotes q ON q.bookId = b.id
+        GROUP BY b.id ORDER BY b.name COLLATE NOCASE
+        """
+    )
+    fun observeAll(): Flow<List<BookRow>>
+
     @Query("SELECT id, name FROM books ORDER BY name COLLATE NOCASE")
-    fun observeAll(): Flow<List<BookEntity>>
+    fun observeAllEntities(): Flow<List<BookEntity>>
 
     @Query(
         """
@@ -34,3 +43,5 @@ interface BookDao {
     @Query("DELETE FROM books WHERE id NOT IN (SELECT DISTINCT bookId FROM quotes)")
     suspend fun deleteOrphans(): Int
 }
+
+data class BookRow(val id: Long, val name: String, val quoteCount: Int)

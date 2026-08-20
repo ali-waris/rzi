@@ -49,6 +49,9 @@ interface TagDao {
     @Query("SELECT name FROM tags t JOIN quote_tags qt ON qt.tagId = t.id WHERE qt.quoteId = :quoteId ORDER BY t.name COLLATE NOCASE")
     suspend fun namesForQuote(quoteId: Long): List<String>
 
+    @Query("SELECT name FROM tags ORDER BY name COLLATE NOCASE")
+    fun allNames(): Flow<List<String>>
+
     @Query("DELETE FROM tags WHERE id NOT IN (SELECT DISTINCT tagId FROM quote_tags)")
     suspend fun deleteOrphans(): Int
 }

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -50,6 +51,7 @@ fun BookFilterSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .fillMaxHeight()
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 32.dp),
         ) {
@@ -84,7 +86,7 @@ fun BookFilterSheet(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            LazyColumn(modifier = Modifier.height(360.dp)) {
+            LazyColumn(modifier = Modifier.weight(1f)) {
                 items(filtered, key = { it.id }) { book ->
                     val selected = book.id in selectedBookIds
                     Row(
@@ -102,6 +104,12 @@ fun BookFilterSheet(
                             text = book.name,
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.weight(1f),
+                        )
+                        Text(
+                            text = "(${book.quoteCount})",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 8.dp),
                         )
                     }
                 }

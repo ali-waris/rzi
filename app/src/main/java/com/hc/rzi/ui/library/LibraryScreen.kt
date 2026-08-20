@@ -1,21 +1,26 @@
 package com.hc.rzi.ui.library
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DockedSearchBar
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -30,17 +35,16 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -58,6 +62,11 @@ fun LibraryScreen(
     val quotes = viewModel.quotes.collectAsLazyPagingItems()
     val snackbarHostState = remember { SnackbarHostState() }
     var overflowOpen by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = state.isSelectionMode) {
+        viewModel.clearSelection()
+    }
 
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -73,66 +82,103 @@ fun LibraryScreen(
 
     LaunchedEffect(Unit) {
         viewModel.messages.collect { message ->
+            val isDeleteMessage =
+                message == LibraryViewModel.DELETE_MESSAGE || message.endsWith("deleted")
             val result = snackbarHostState.showSnackbar(
                 message = message,
-                actionLabel = if (message == LibraryViewModel.DELETE_MESSAGE) "Undo" else null,
+                actionLabel = if (isDeleteMessage) "Undo" else null,
                 duration = SnackbarDuration.Short,
             )
             if (result == SnackbarResult.ActionPerformed) viewModel.undoDelete()
         }
     }
 
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete ${state.selectedIds.size} quotes?") },
+            text = { Text("This cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteConfirm = false
+                    viewModel.deleteSelected()
+                }) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+            },
+        )
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text("Library") },
-                actions = {
-                    if (state.isAdmin) {
-                        IconButton(onClick = viewModel::lock) {
-                            Icon(Icons.Filled.LockOpen, contentDescription = "Lock admin")
+            if (state.isSelectionMode) {
+                TopAppBar(
+                    title = { Text("${state.selectedIds.size} selected") },
+                    navigationIcon = {
+                        IconButton(onClick = viewModel::clearSelection) {
+                            Icon(Icons.Filled.Close, contentDescription = "Clear selection")
                         }
-                    } else {
-                        IconButton(onClick = viewModel::openAdminDialog) {
-                            Icon(Icons.Filled.Lock, contentDescription = "Admin")
+                    },
+                    actions = {
+                        IconButton(onClick = { showDeleteConfirm = true }) {
+                            Icon(Icons.Filled.Delete, contentDescription = "Delete selected")
                         }
-                    }
-                    IconButton(onClick = { overflowOpen = true }) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = "More")
-                    }
-                    DropdownMenu(
-                        expanded = overflowOpen,
-                        onDismissRequest = { overflowOpen = false },
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Export database") },
-                            onClick = {
-                                overflowOpen = false
-                                exportLauncher.launch("rzi-quotes.sqlite")
-                            },
-                        )
+                    },
+                )
+            } else {
+                TopAppBar(
+                    title = { Text("Library") },
+                    actions = {
                         if (state.isAdmin) {
-                            DropdownMenuItem(
-                                text = { Text("Import database") },
-                                onClick = {
-                                    overflowOpen = false
-                                    importLauncher.launch(arrayOf("application/octet-stream"))
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Change PIN") },
-                                onClick = {
-                                    overflowOpen = false
-                                    viewModel.openChangePin()
-                                },
-                            )
+                            IconButton(onClick = viewModel::lock) {
+                                Icon(Icons.Filled.LockOpen, contentDescription = "Lock admin")
+                            }
+                        } else {
+                            IconButton(onClick = viewModel::openAdminDialog) {
+                                Icon(Icons.Filled.Lock, contentDescription = "Admin")
+                            }
                         }
-                    }
-                },
-            )
+                        IconButton(onClick = { overflowOpen = true }) {
+                            Icon(Icons.Filled.MoreVert, contentDescription = "More")
+                        }
+                        DropdownMenu(
+                            expanded = overflowOpen,
+                            onDismissRequest = { overflowOpen = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Export database") },
+                                onClick = {
+                                    overflowOpen = false
+                                    exportLauncher.launch("rzi-quotes.sqlite")
+                                },
+                            )
+                            if (state.isAdmin) {
+                                DropdownMenuItem(
+                                    text = { Text("Import database") },
+                                    onClick = {
+                                        overflowOpen = false
+                                        importLauncher.launch(arrayOf("application/octet-stream"))
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Change PIN") },
+                                    onClick = {
+                                        overflowOpen = false
+                                        viewModel.openChangePin()
+                                    },
+                                )
+                            }
+                        }
+                    },
+                )
+            }
         },
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)) {
             DockedSearchBar(
                 query = state.query,
                 onQueryChange = viewModel::onQueryChange,
@@ -148,48 +194,57 @@ fun LibraryScreen(
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
 
-            if (state.books.isNotEmpty() || state.tagFilters.isNotEmpty()) {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                ) {
-                    if (state.books.isNotEmpty()) {
-                        item {
-                            FilterChip(
-                                selected = state.selectedBookIds.isNotEmpty(),
-                                onClick = viewModel::openBookSheet,
-                                label = {
-                                    Text(
-                                        if (state.selectedBookIds.isEmpty()) "Books"
-                                        else "Books (${state.selectedBookIds.size})"
-                                    )
-                                },
-                            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                if (state.books.isNotEmpty() || state.tagFilters.isNotEmpty()) {
+                    LazyRow(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        if (state.books.isNotEmpty()) {
+                            item {
+                                FilterChip(
+                                    selected = state.selectedBookIds.isNotEmpty(),
+                                    onClick = viewModel::openBookSheet,
+                                    label = {
+                                        Text(
+                                            if (state.selectedBookIds.isEmpty()) "Books"
+                                            else "Books (${state.selectedBookIds.size})"
+                                        )
+                                    },
+                                )
+                            }
+                        }
+                        if (state.tagFilters.isNotEmpty()) {
+                            item {
+                                FilterChip(
+                                    selected = state.selectedTagIds.isNotEmpty(),
+                                    onClick = viewModel::openTagSheet,
+                                    label = {
+                                        Text(
+                                            if (state.selectedTagIds.isEmpty()) "Tags"
+                                            else "Tags (${state.selectedTagIds.size})"
+                                        )
+                                    },
+                                )
+                            }
                         }
                     }
-                    if (state.tagFilters.isNotEmpty()) {
-                        item {
-                            FilterChip(
-                                selected = state.selectedTagIds.isNotEmpty(),
-                                onClick = viewModel::openTagSheet,
-                                label = {
-                                    Text(
-                                        if (state.selectedTagIds.isEmpty()) "Tags"
-                                        else "Tags (${state.selectedTagIds.size})"
-                                    )
-                                },
-                            )
-                        }
-                    }
+                    Spacer(Modifier.width(8.dp))
+                } else {
+                    Spacer(Modifier.weight(1f))
                 }
+                Text(
+                    text = state.countLabel,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-
-            Text(
-                text = state.countLabel,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
 
             when {
                 state.totalCount == 0 && state.isAdmin -> EmptyState(
@@ -212,39 +267,28 @@ fun LibraryScreen(
                     )
 
                 else -> LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(quotes.itemCount) { index ->
+                    items(
+                        count = quotes.itemCount,
+                        key = { index -> quotes[index]?.id ?: index },
+                    ) { index ->
                         val quote = quotes[index] ?: return@items
-                        if (state.isAdmin) {
-                            val dismissState = rememberSwipeToDismissBoxState(
-                                confirmValueChange = { value ->
-                                    if (value == SwipeToDismissBoxValue.EndToStart) {
-                                        viewModel.delete(quote)
-                                        true
-                                    } else {
-                                        false
-                                    }
-                                },
-                            )
-                            SwipeToDismissBox(
-                                state = dismissState,
-                                enableDismissFromStartToEnd = false,
-                                backgroundContent = {
-                                    Box(modifier = Modifier.fillMaxSize())
-                                },
-                            ) {
-                                QuoteRowItem(
-                                    quote = quote,
-                                    query = state.query,
-                                    onClick = { onQuoteClick(quote.id) },
-                                )
-                            }
-                        } else {
-                            QuoteRowItem(
-                                quote = quote,
-                                query = state.query,
-                                onClick = { onQuoteClick(quote.id) },
-                            )
-                        }
+                        val isSelected = quote.id in state.selectedIds
+                        QuoteRowItem(
+                            quote = quote,
+                            query = state.query,
+                            isSelected = isSelected,
+                            isSelectionMode = state.isSelectionMode,
+                            onClick = {
+                                if (state.isSelectionMode) {
+                                    viewModel.toggleSelection(quote.id)
+                                } else {
+                                    onQuoteClick(quote.id)
+                                }
+                            },
+                            onLongClick = if (state.isAdmin) {
+                                { viewModel.onQuoteLongPress(quote.id) }
+                            } else null,
+                        )
                     }
                 }
             }

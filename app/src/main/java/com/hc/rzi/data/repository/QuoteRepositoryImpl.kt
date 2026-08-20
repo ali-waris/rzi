@@ -80,10 +80,10 @@ class QuoteRepositoryImpl @Inject constructor(
     override fun observeReelIds(mode: ReelMode, filter: ReelFilter): Flow<List<Long>> =
         when (mode) {
             ReelMode.SHUFFLE -> quoteDao.observeReelIdsForShuffle(
-                filter.bookId, filter.tagIds, filter.tagIds.size,
+                filter.bookIds, filter.bookIds.size, filter.tagIds, filter.tagIds.size,
             )
             ReelMode.LINEAR -> quoteDao.observeReelIdsForLinear(
-                filter.bookId, filter.tagIds, filter.tagIds.size,
+                filter.bookIds, filter.bookIds.size, filter.tagIds, filter.tagIds.size,
             )
         }
 
@@ -154,9 +154,19 @@ class QuoteRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun delete(ids: Set<Long>) {
+        if (ids.isEmpty()) return
+        db.withTransaction {
+            ftsDao.deleteByIds(ids)
+            quoteDao.deleteByIds(ids)
+            bookDao.deleteOrphans()
+            tagDao.deleteOrphans()
+        }
+    }
+
     override fun bookSuggestions(prefix: String): Flow<List<String>> = bookDao.suggest(prefix)
 
-    override fun tagSuggestions(prefix: String): Flow<List<String>> = tagDao.suggest(prefix)
+    override fun allTagNames(): Flow<List<String>> = tagDao.allNames()
 
     override fun observeTagFilters(): Flow<List<TagFilter>> =
         tagDao.observeFilters().map { rows ->
@@ -164,7 +174,7 @@ class QuoteRepositoryImpl @Inject constructor(
         }
 
     override fun observeBooks(): Flow<List<Book>> =
-        bookDao.observeAll().map { books -> books.map { Book(id = it.id, name = it.name) } }
+        bookDao.observeAll().map { books -> books.map { Book(id = it.id, name = it.name, quoteCount = it.quoteCount) } }
 
     override fun observeQuoteCount(): Flow<Int> = quoteDao.observeCount()
 

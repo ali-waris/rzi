@@ -1,16 +1,16 @@
 package com.hc.rzi.ui.library
 
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -32,61 +32,107 @@ fun QuoteRowItem(
     query: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isSelected: Boolean = false,
+    isSelectionMode: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
     Card(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = 6.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.md, vertical = 6.dp)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick,
+            ),
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) scheme.secondaryContainer else scheme.surfaceContainerLow,
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Row(
-            modifier = Modifier.padding(Spacing.md),
-            verticalAlignment = Alignment.Top,
-        ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Surface(
-                shape = MaterialTheme.shapes.small,
-                color = scheme.primaryContainer,
-                contentColor = scheme.onPrimaryContainer,
-                modifier = Modifier.size(36.dp),
+                color = scheme.tertiaryContainer,
+                contentColor = scheme.onTertiaryContainer,
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text("\u201C", style = MaterialTheme.typography.titleLarge)
+                Row(
+                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = quote.bookName,
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    quote.pageNumber?.let {
+                        Text(
+                            text = "p. $it",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = scheme.onTertiaryContainer.copy(alpha = 0.8f),
+                            modifier = Modifier.padding(start = Spacing.sm),
+                        )
+                    }
                 }
             }
-            Spacer(Modifier.width(Spacing.sm + 4.dp))
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+            Row(
+                modifier = Modifier.padding(Spacing.md),
+                verticalAlignment = Alignment.Top,
             ) {
-                Text(
-                    text = highlight(quote.text, query),
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = buildString {
-                        append(quote.bookName)
-                        quote.pageNumber?.let { append(" \u00B7 p. $it") }
-                    },
-                    style = MaterialTheme.typography.labelLarge,
-                    color = scheme.onSurfaceVariant,
-                )
-                if (quote.tags.isNotEmpty()) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        quote.tags.take(3).forEach { tag ->
-                            Surface(
-                                shape = MaterialTheme.shapes.extraSmall,
-                                color = scheme.surfaceContainerHighest,
-                                contentColor = scheme.onSurfaceVariant,
-                            ) {
-                                Text(
-                                    text = tag,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                )
+                if (isSelectionMode) {
+                    Checkbox(
+                        checked = isSelected,
+                        onCheckedChange = { onClick() },
+                    )
+                    Spacer(Modifier.width(Spacing.sm))
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        text = highlight(quote.text, query),
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (quote.tags.isNotEmpty()) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                            quote.tags.take(3).forEach { tag ->
+                                Surface(
+                                    shape = MaterialTheme.shapes.extraSmall,
+                                    color = scheme.surfaceContainerHighest,
+                                    contentColor = scheme.onSurfaceVariant,
+                                ) {
+                                    Text(
+                                        text = tag,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(
+                                            horizontal = 10.dp,
+                                            vertical = 4.dp
+                                        ),
+                                    )
+                                }
+                            }
+                            if (quote.tags.size > 3) {
+                                Surface(
+                                    shape = MaterialTheme.shapes.extraSmall,
+                                    color = scheme.surfaceContainerHighest,
+                                    contentColor = scheme.onSurfaceVariant,
+                                ) {
+                                    Text(
+                                        text = "...",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(
+                                            horizontal = 10.dp,
+                                            vertical = 4.dp
+                                        ),
+                                    )
+                                }
                             }
                         }
                     }

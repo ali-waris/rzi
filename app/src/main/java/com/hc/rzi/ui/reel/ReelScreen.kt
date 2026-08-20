@@ -16,10 +16,11 @@ import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconToggleButton
@@ -59,7 +60,7 @@ fun ReelScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    if (state.isEmpty) {
+    if (state.isEmpty && !state.filter.isActive) {
         if (state.isAdmin) {
             EmptyState(
                 title = "No quotes yet",
@@ -77,7 +78,15 @@ fun ReelScreen(
     val currentQuote = currentQuoteId?.let { state.quotes[it] }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        key(state.deckKey) {
+        if (state.isEmpty) {
+            EmptyState(
+                title = "No matches for these filters",
+                body = "Try adjusting your book or tag filters.",
+                actionLabel = "Clear filters",
+                onAction = viewModel::clearFilter,
+            )
+        } else {
+            key(state.deckKey) {
             val pagerState = rememberPagerState(
                 initialPage = state.initialPage,
                 pageCount = { if (state.deck.size == 0) 0 else Int.MAX_VALUE },
@@ -109,14 +118,17 @@ fun ReelScreen(
                     },
                 )
             }
+            }
         }
 
         ReelToolbar(
             mode = state.mode,
             isFiltered = state.filter.isActive,
             filteredCount = state.deck.size,
+            filter = state.filter,
             currentQuote = currentQuote,
-            onOpenFilter = viewModel::openFilterSheet,
+            onOpenBookFilter = viewModel::openBookSheet,
+            onOpenTagFilter = viewModel::openTagSheet,
             onToggleMode = viewModel::toggleMode,
             onClearFilter = viewModel::clearFilter,
             onShare = { quote -> shareQuote(context, quote) },
@@ -127,13 +139,22 @@ fun ReelScreen(
         )
     }
 
-    if (state.isFilterSheetOpen) {
-        ReelFilterSheet(
+    if (state.isBookSheetOpen) {
+        com.hc.rzi.ui.library.BookFilterSheet(
             books = state.books,
+            selectedBookIds = state.filter.bookIds,
+            onBookToggle = viewModel::onBookToggle,
+            onDismiss = viewModel::closeBookSheet,
+            onClear = viewModel::clearBookFilter,
+        )
+    }
+    if (state.isTagSheetOpen) {
+        com.hc.rzi.ui.library.TagFilterSheet(
             tagFilters = state.tagFilters,
-            current = state.filter,
-            onApply = viewModel::applyFilter,
-            onDismiss = viewModel::closeFilterSheet,
+            selectedTagIds = state.filter.tagIds,
+            onTagToggle = viewModel::onTagToggle,
+            onDismiss = viewModel::closeTagSheet,
+            onClear = viewModel::clearTagFilter,
         )
     }
 }
@@ -143,8 +164,10 @@ private fun ReelToolbar(
     mode: ReelMode,
     isFiltered: Boolean,
     filteredCount: Int,
+    filter: com.hc.rzi.domain.model.ReelFilter,
     currentQuote: Quote?,
-    onOpenFilter: () -> Unit,
+    onOpenBookFilter: () -> Unit,
+    onOpenTagFilter: () -> Unit,
     onToggleMode: () -> Unit,
     onClearFilter: () -> Unit,
     onShare: (Quote) -> Unit,
@@ -162,11 +185,18 @@ private fun ReelToolbar(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = Spacing.xs, vertical = 2.dp),
         ) {
-            IconButton(onClick = onOpenFilter) {
+            IconButton(onClick = onOpenBookFilter) {
                 Icon(
-                    Icons.Filled.FilterList,
-                    contentDescription = "Filter the reel",
-                    tint = if (isFiltered) scheme.primary else LocalContentColor.current,
+                    Icons.AutoMirrored.Filled.MenuBook,
+                    contentDescription = "Filter by book",
+                    tint = if (filter.bookIds.isNotEmpty()) scheme.primary else LocalContentColor.current,
+                )
+            }
+            IconButton(onClick = onOpenTagFilter) {
+                Icon(
+                    Icons.AutoMirrored.Filled.Label,
+                    contentDescription = "Filter by tag",
+                    tint = if (filter.tagIds.isNotEmpty()) scheme.primary else LocalContentColor.current,
                 )
             }
             IconToggleButton(checked = mode == ReelMode.SHUFFLE, onCheckedChange = { onToggleMode() }) {

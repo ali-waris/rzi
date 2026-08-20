@@ -7,10 +7,10 @@ import com.hc.rzi.domain.model.SaveQuoteResult
 import com.hc.rzi.domain.model.ValidationErrors
 import com.hc.rzi.domain.repository.AdminRepository
 import com.hc.rzi.domain.repository.QuoteRepository
+import com.hc.rzi.domain.usecase.AllTagNames
 import com.hc.rzi.domain.usecase.BookSuggestions
 import com.hc.rzi.domain.usecase.DeleteQuote
 import com.hc.rzi.domain.usecase.SaveQuote
-import com.hc.rzi.domain.usecase.TagSuggestions
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class QuoteDetailViewModel @Inject constructor(
@@ -31,7 +32,7 @@ class QuoteDetailViewModel @Inject constructor(
     private val saveQuote: SaveQuote,
     private val deleteQuote: DeleteQuote,
     private val bookSuggestions: BookSuggestions,
-    private val tagSuggestions: TagSuggestions,
+    private val allTagNames: AllTagNames,
     private val adminRepository: AdminRepository,
 ) : ViewModel() {
 
@@ -42,7 +43,6 @@ class QuoteDetailViewModel @Inject constructor(
     val events = _events.receiveAsFlow()
 
     private var bookSuggestionsJob: Job? = null
-    private var lastBookNameChangeTime: Long = 0
 
     private var loadedId: Long? = Long.MIN_VALUE
 
@@ -59,7 +59,7 @@ class QuoteDetailViewModel @Inject constructor(
             if (quoteId == null) {
                 _state.value = _state.value.copy(isLoading = false, isEditing = true)
                 refreshBookSuggestions("")
-                refreshAllKnownTags("")
+                refreshAllKnownTags()
                 return@launch
             }
             val quote = repository.quoteById(quoteId)
@@ -77,7 +77,7 @@ class QuoteDetailViewModel @Inject constructor(
                 )
             }
             refreshBookSuggestions("")
-            refreshAllKnownTags("")
+            refreshAllKnownTags()
         }
     }
 
@@ -91,7 +91,7 @@ class QuoteDetailViewModel @Inject constructor(
             tags = quote.tags,
             errors = ValidationErrors(),
         )
-        viewModelScope.launch { refreshAllKnownTags("") }
+        viewModelScope.launch { refreshAllKnownTags() }
     }
 
     fun cancelEdit() {
@@ -105,7 +105,7 @@ class QuoteDetailViewModel @Inject constructor(
             tagInput = "",
             errors = ValidationErrors(),
         )
-        viewModelScope.launch { refreshAllKnownTags("") }
+        viewModelScope.launch { refreshAllKnownTags() }
     }
 
     fun onTextChange(value: String) {
@@ -115,12 +115,9 @@ class QuoteDetailViewModel @Inject constructor(
     fun onBookNameChange(value: String) {
         _state.value = _state.value.copy(bookName = value, errors = _state.value.errors.copy(bookName = null))
         bookSuggestionsJob?.cancel()
-        lastBookNameChangeTime = System.currentTimeMillis()
         bookSuggestionsJob = viewModelScope.launch {
-            delay(400)
-            if (System.currentTimeMillis() - lastBookNameChangeTime >= 400) {
-                refreshBookSuggestions(value)
-            }
+            delay(1.seconds)
+            refreshBookSuggestions(value)
         }
     }
 
@@ -156,7 +153,7 @@ class QuoteDetailViewModel @Inject constructor(
             tagInput = "",
             allKnownTags = updatedAllKnown,
         )
-        viewModelScope.launch { refreshAllKnownTags("") }
+        viewModelScope.launch { refreshAllKnownTags() }
     }
 
     fun removeTag(name: String) {
@@ -239,8 +236,8 @@ class QuoteDetailViewModel @Inject constructor(
         _state.value = _state.value.copy(bookSuggestions = bookSuggestions(prefix).first())
     }
 
-    private suspend fun refreshAllKnownTags(prefix: String) {
-        val dbTags = tagSuggestions(prefix).first()
+    private suspend fun refreshAllKnownTags() {
+        val dbTags = allTagNames().first()
         val currentAllKnown = _state.value.allKnownTags
         val merged = (currentAllKnown + dbTags).distinctBy { it.lowercase() }.sorted()
         _state.value = _state.value.copy(allKnownTags = merged)

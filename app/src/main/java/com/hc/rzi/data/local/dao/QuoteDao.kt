@@ -22,6 +22,9 @@ interface QuoteDao {
     @Query("DELETE FROM quotes WHERE id = :id")
     suspend fun deleteById(id: Long)
 
+    @Query("DELETE FROM quotes WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: Set<Long>)
+
     @Query("SELECT * FROM quotes WHERE id = :id")
     suspend fun entityById(id: Long): QuoteEntity?
 
@@ -70,12 +73,13 @@ interface QuoteDao {
     @Query(
         """
         SELECT q.id FROM quotes q JOIN books b ON b.id = q.bookId
-        WHERE $FILTER_PREDICATE
+        WHERE $REEL_FILTER_PREDICATE
         ORDER BY q.id
         """
     )
     fun observeReelIdsForShuffle(
-        bookId: Long?,
+        bookIds: List<Long>,
+        bookCount: Int,
         tagIds: List<Long>,
         tagCount: Int,
     ): Flow<List<Long>>
@@ -83,12 +87,13 @@ interface QuoteDao {
     @Query(
         """
         SELECT q.id FROM quotes q JOIN books b ON b.id = q.bookId
-        WHERE $FILTER_PREDICATE
+        WHERE $REEL_FILTER_PREDICATE
         ORDER BY b.name COLLATE NOCASE, (q.pageNumber IS NULL), q.pageNumber, q.id
         """
     )
     fun observeReelIdsForLinear(
-        bookId: Long?,
+        bookIds: List<Long>,
+        bookCount: Int,
         tagIds: List<Long>,
         tagCount: Int,
     ): Flow<List<Long>>
@@ -103,8 +108,8 @@ interface QuoteDao {
         """
 
         const val TAG_PREDICATE = """
-            (:tagCount = 0 OR (SELECT COUNT(*) FROM quote_tags qt
-                                WHERE qt.quoteId = q.id AND qt.tagId IN (:tagIds)) = :tagCount)
+            (:tagCount = 0 OR EXISTS (SELECT 1 FROM quote_tags qt
+                                WHERE qt.quoteId = q.id AND qt.tagId IN (:tagIds)))
         """
 
         const val MATCH_PREDICATE = """
@@ -122,11 +127,15 @@ interface QuoteDao {
             (:bookCount = 0 OR q.bookId IN (:bookIds))
         """
 
+        const val REEL_FILTER_PREDICATE = """
+            $BOOK_PREDICATE
+            AND $TAG_PREDICATE
+        """
+
         const val LIBRARY_MATCH_PREDICATE = """
             (:hasQuery = 0
               OR q.id IN (SELECT rowid FROM quote_fts WHERE quote_fts MATCH :ftsQuery))
-            AND $TAG_PREDICATE
-            AND $BOOK_PREDICATE
+            AND $REEL_FILTER_PREDICATE
         """
     }
 }
