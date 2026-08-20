@@ -69,6 +69,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -84,6 +85,8 @@ import com.hc.rzi.domain.model.Quote
 import com.hc.rzi.ui.components.EmptyState
 import com.hc.rzi.ui.components.TagChip
 import com.hc.rzi.ui.theme.Spacing
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -760,10 +763,15 @@ private fun BookNameField(
     modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val matches = suggestions.filter {
-        value.isBlank() || it.contains(value, ignoreCase = true)
+    var debouncedValue by remember { mutableStateOf(value) }
+    LaunchedEffect(value) {
+        delay(1.seconds)
+        debouncedValue = value
     }
-    val showMenu = expanded && matches.isNotEmpty()
+    val matches = suggestions.filter {
+        debouncedValue.isBlank() || it.contains(debouncedValue, ignoreCase = true)
+    }
+    val showMenu = expanded && debouncedValue == value && matches.isNotEmpty()
 
     ExposedDropdownMenuBox(
         expanded = showMenu,

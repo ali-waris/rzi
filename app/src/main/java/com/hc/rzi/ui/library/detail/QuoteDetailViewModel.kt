@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class QuoteDetailViewModel @Inject constructor(
@@ -42,7 +43,6 @@ class QuoteDetailViewModel @Inject constructor(
     val events = _events.receiveAsFlow()
 
     private var bookSuggestionsJob: Job? = null
-    private var lastBookNameChangeTime: Long = 0
 
     private var loadedId: Long? = Long.MIN_VALUE
 
@@ -115,12 +115,9 @@ class QuoteDetailViewModel @Inject constructor(
     fun onBookNameChange(value: String) {
         _state.value = _state.value.copy(bookName = value, errors = _state.value.errors.copy(bookName = null))
         bookSuggestionsJob?.cancel()
-        lastBookNameChangeTime = System.currentTimeMillis()
         bookSuggestionsJob = viewModelScope.launch {
-            delay(400)
-            if (System.currentTimeMillis() - lastBookNameChangeTime >= 400) {
-                refreshBookSuggestions(value)
-            }
+            delay(1.seconds)
+            refreshBookSuggestions(value)
         }
     }
 
