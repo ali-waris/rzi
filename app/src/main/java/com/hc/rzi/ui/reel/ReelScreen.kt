@@ -20,7 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material.icons.automirrored.outlined.Label
+import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconToggleButton
@@ -194,7 +194,7 @@ private fun ReelToolbar(
             }
             IconButton(onClick = onOpenTagFilter) {
                 Icon(
-                    Icons.AutoMirrored.Outlined.Label,
+                    Icons.AutoMirrored.Filled.Label,
                     contentDescription = "Filter by tag",
                     tint = if (filter.tagIds.isNotEmpty()) scheme.primary else LocalContentColor.current,
                 )
