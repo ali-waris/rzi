@@ -6,10 +6,12 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material.icons.Icons
@@ -42,6 +44,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -79,7 +82,8 @@ fun LibraryScreen(
 
     LaunchedEffect(Unit) {
         viewModel.messages.collect { message ->
-            val isDeleteMessage = message == LibraryViewModel.DELETE_MESSAGE || message.endsWith("deleted")
+            val isDeleteMessage =
+                message == LibraryViewModel.DELETE_MESSAGE || message.endsWith("deleted")
             val result = snackbarHostState.showSnackbar(
                 message = message,
                 actionLabel = if (isDeleteMessage) "Undo" else null,
@@ -172,7 +176,9 @@ fun LibraryScreen(
             }
         },
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)) {
             DockedSearchBar(
                 query = state.query,
                 onQueryChange = viewModel::onQueryChange,
@@ -188,48 +194,57 @@ fun LibraryScreen(
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
 
-            if (state.books.isNotEmpty() || state.tagFilters.isNotEmpty()) {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                ) {
-                    if (state.books.isNotEmpty()) {
-                        item {
-                            FilterChip(
-                                selected = state.selectedBookIds.isNotEmpty(),
-                                onClick = viewModel::openBookSheet,
-                                label = {
-                                    Text(
-                                        if (state.selectedBookIds.isEmpty()) "Books"
-                                        else "Books (${state.selectedBookIds.size})"
-                                    )
-                                },
-                            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                if (state.books.isNotEmpty() || state.tagFilters.isNotEmpty()) {
+                    LazyRow(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        if (state.books.isNotEmpty()) {
+                            item {
+                                FilterChip(
+                                    selected = state.selectedBookIds.isNotEmpty(),
+                                    onClick = viewModel::openBookSheet,
+                                    label = {
+                                        Text(
+                                            if (state.selectedBookIds.isEmpty()) "Books"
+                                            else "Books (${state.selectedBookIds.size})"
+                                        )
+                                    },
+                                )
+                            }
+                        }
+                        if (state.tagFilters.isNotEmpty()) {
+                            item {
+                                FilterChip(
+                                    selected = state.selectedTagIds.isNotEmpty(),
+                                    onClick = viewModel::openTagSheet,
+                                    label = {
+                                        Text(
+                                            if (state.selectedTagIds.isEmpty()) "Tags"
+                                            else "Tags (${state.selectedTagIds.size})"
+                                        )
+                                    },
+                                )
+                            }
                         }
                     }
-                    if (state.tagFilters.isNotEmpty()) {
-                        item {
-                            FilterChip(
-                                selected = state.selectedTagIds.isNotEmpty(),
-                                onClick = viewModel::openTagSheet,
-                                label = {
-                                    Text(
-                                        if (state.selectedTagIds.isEmpty()) "Tags"
-                                        else "Tags (${state.selectedTagIds.size})"
-                                    )
-                                },
-                            )
-                        }
-                    }
+                    Spacer(Modifier.width(8.dp))
+                } else {
+                    Spacer(Modifier.weight(1f))
                 }
+                Text(
+                    text = state.countLabel,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-
-            Text(
-                text = state.countLabel,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
 
             when {
                 state.totalCount == 0 && state.isAdmin -> EmptyState(
