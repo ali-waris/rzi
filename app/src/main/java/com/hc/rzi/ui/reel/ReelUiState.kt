@@ -16,10 +16,11 @@ data class ReelUiState(
     val quotes: Map<Long, Quote> = emptyMap(),
     val books: List<Book> = emptyList(),
     val tagFilters: List<TagFilter> = emptyList(),
-    val isFilterSheetOpen: Boolean = false,
+    val isBookSheetOpen: Boolean = false,
+    val isTagSheetOpen: Boolean = false,
     val isLoading: Boolean = true,
     val isAdmin: Boolean = false,
 ) {
     val isEmpty: Boolean get() = !isLoading && deck.size == 0
-    val deckKey: String get() = "$mode-${filter.bookId}-${filter.tagIds}-${deck.size}"
+    val deckKey: String get() = "$mode-${filter.bookIds}-${filter.tagIds}-${deck.size}"
 }

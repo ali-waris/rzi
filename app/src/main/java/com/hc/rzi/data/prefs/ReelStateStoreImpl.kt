@@ -29,7 +29,15 @@ class ReelStateStoreImpl @Inject constructor(
             absoluteIndex = prefs[INDEX] ?: 0,
             currentQuoteId = prefs[QUOTE_ID]?.takeIf { prefs[HAS_QUOTE_ID] == true },
             filter = ReelFilter(
-                bookId = prefs[BOOK_ID]?.takeIf { prefs[HAS_BOOK_ID] == true },
+                bookIds = prefs[BOOK_IDS]
+                    ?.split(',')
+                    ?.filter { it.isNotBlank() }
+                    ?.map { it.toLong() }
+                    .orEmpty()
+                    .ifEmpty {
+                        // Migrate legacy single bookId
+                        prefs[BOOK_ID]?.takeIf { prefs[HAS_BOOK_ID] == true }?.let { listOf(it) }.orEmpty()
+                    },
                 tagIds = prefs[TAG_IDS]
                     ?.split(',')
                     ?.filter { it.isNotBlank() }
@@ -47,8 +55,10 @@ class ReelStateStoreImpl @Inject constructor(
             prefs[INDEX] = next.absoluteIndex
             prefs[HAS_QUOTE_ID] = next.currentQuoteId != null
             prefs[QUOTE_ID] = next.currentQuoteId ?: 0L
-            prefs[HAS_BOOK_ID] = next.filter.bookId != null
-            prefs[BOOK_ID] = next.filter.bookId ?: 0L
+            prefs[BOOK_IDS] = next.filter.bookIds.joinToString(",")
+            // Clear legacy keys
+            prefs.remove(BOOK_ID)
+            prefs.remove(HAS_BOOK_ID)
             prefs[TAG_IDS] = next.filter.tagIds.joinToString(",")
         }
     }
@@ -59,6 +69,7 @@ class ReelStateStoreImpl @Inject constructor(
         val INDEX = intPreferencesKey("reel_index")
         val QUOTE_ID = longPreferencesKey("reel_quote_id")
         val HAS_QUOTE_ID = booleanPreferencesKey("reel_has_quote_id")
+        val BOOK_IDS = stringPreferencesKey("reel_book_ids")
         val BOOK_ID = longPreferencesKey("reel_book_id")
         val HAS_BOOK_ID = booleanPreferencesKey("reel_has_book_id")
         val TAG_IDS = stringPreferencesKey("reel_tag_ids")

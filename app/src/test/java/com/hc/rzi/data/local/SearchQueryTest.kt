@@ -88,14 +88,13 @@ class SearchQueryTest {
     }
 
     @Test
-    fun `multiple tags are ANDed not ORed`() = runTest {
+    fun `multiple tags are ORed`() = runTest {
         val focusId = db.tagDao().findByName("focus")!!.id
         val workId = db.tagDao().findByName("work")!!.id
 
         val result = search(tagIds = listOf(focusId, workId))
 
-        assertThat(result).hasSize(1)
-        assertThat(result.single().bookName).isEqualTo("So Good They Can't Ignore You")
+        assertThat(result).hasSize(2)
     }
 
     @Test
@@ -137,23 +136,23 @@ class SearchQueryTest {
         val match = db.quoteDao().observeMatchCount(
             0, "", listOf(focusId, workId), 2, listOf(deepWorkId), 1,
         ).first()
-        assertThat(match).isEqualTo(0)
+        assertThat(match).isEqualTo(1)
 
         val noBook = db.quoteDao().observeMatchCount(
             0, "", listOf(focusId, workId), 2, emptyList(), 0,
         ).first()
-        assertThat(noBook).isEqualTo(1)
+        assertThat(noBook).isEqualTo(2)
     }
 
     @Test
-    fun `multiple library tags are ANDed not ORed`() = runTest {
+    fun `multiple library tags are ORed`() = runTest {
         val focusId = db.tagDao().findByName("focus")!!.id
         val workId = db.tagDao().findByName("work")!!.id
 
         val both = db.quoteDao().observeMatchCount(
             0, "", listOf(focusId, workId), 2, emptyList(), 0,
         ).first()
-        assertThat(both).isEqualTo(1)
+        assertThat(both).isEqualTo(2)
 
         val single = db.quoteDao().observeMatchCount(
             0, "", listOf(focusId), 1, emptyList(), 0,
@@ -179,7 +178,7 @@ class SearchQueryTest {
 
     @Test
     fun `shuffle reel ids are unfiltered by default`() = runTest {
-        assertThat(db.quoteDao().observeReelIdsForShuffle(null, emptyList(), 0).first()).hasSize(3)
+        assertThat(db.quoteDao().observeReelIdsForShuffle(emptyList(), 0, emptyList(), 0).first()).hasSize(3)
     }
 
     @Test
@@ -187,7 +186,7 @@ class SearchQueryTest {
         DbFixtures.insertQuote(db, "second page of deep work", "Deep Work", pageNumber = 7)
         DbFixtures.insertQuote(db, "unpaged deep work note", "Deep Work", pageNumber = null)
 
-        val ids = db.quoteDao().observeReelIdsForLinear(null, emptyList(), 0).first()
+        val ids = db.quoteDao().observeReelIdsForLinear(emptyList(), 0, emptyList(), 0).first()
         val rows = ids.map { db.quoteDao().rowById(it)!! }
 
         assertThat(rows.map { it.bookName }.distinct())
@@ -200,17 +199,17 @@ class SearchQueryTest {
     @Test
     fun `reel ids honour a book filter`() = runTest {
         val bookId = db.bookDao().findByName("Deep Work")!!.id
-        val ids = db.quoteDao().observeReelIdsForShuffle(bookId, emptyList(), 0).first()
+        val ids = db.quoteDao().observeReelIdsForShuffle(listOf(bookId), 1, emptyList(), 0).first()
         assertThat(ids).hasSize(1)
     }
 
     @Test
-    fun `reel ids honour ANDed tag filters`() = runTest {
+    fun `reel ids honour ORed tag filters`() = runTest {
         val focusId = db.tagDao().findByName("focus")!!.id
         val workId = db.tagDao().findByName("work")!!.id
         val ids = db.quoteDao()
-            .observeReelIdsForShuffle(null, listOf(focusId, workId), 2)
+            .observeReelIdsForShuffle(emptyList(), 0, listOf(focusId, workId), 2)
             .first()
-        assertThat(ids).hasSize(1)
+        assertThat(ids).hasSize(2)
     }
 }

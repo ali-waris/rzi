@@ -71,15 +71,49 @@ class ReelViewModel @Inject constructor(
         viewModelScope.launch { store.update { it.copy(mode = nextMode) } }
     }
 
-    fun openFilterSheet() { _state.value = _state.value.copy(isFilterSheetOpen = true) }
+    fun openBookSheet() { _state.value = _state.value.copy(isBookSheetOpen = true) }
 
-    fun closeFilterSheet() { _state.value = _state.value.copy(isFilterSheetOpen = false) }
+    fun closeBookSheet() { _state.value = _state.value.copy(isBookSheetOpen = false) }
+
+    fun openTagSheet() { _state.value = _state.value.copy(isTagSheetOpen = true) }
+
+    fun closeTagSheet() { _state.value = _state.value.copy(isTagSheetOpen = false) }
+
+    fun onBookToggle(bookId: Long) {
+        val current = _state.value.filter
+        val newIds = if (bookId in current.bookIds) current.bookIds - bookId else current.bookIds + bookId
+        val newFilter = current.copy(bookIds = newIds)
+        viewModelScope.launch {
+            store.update { it.copy(filter = newFilter, absoluteIndex = 0, currentQuoteId = null) }
+        }
+    }
+
+    fun clearBookFilter() {
+        viewModelScope.launch {
+            store.update { it.copy(filter = it.filter.copy(bookIds = emptyList()), absoluteIndex = 0, currentQuoteId = null) }
+        }
+    }
+
+    fun onTagToggle(tagId: Long) {
+        val current = _state.value.filter
+        val newIds = if (tagId in current.tagIds) current.tagIds - tagId else current.tagIds + tagId
+        val newFilter = current.copy(tagIds = newIds)
+        viewModelScope.launch {
+            store.update { it.copy(filter = newFilter, absoluteIndex = 0, currentQuoteId = null) }
+        }
+    }
+
+    fun clearTagFilter() {
+        viewModelScope.launch {
+            store.update { it.copy(filter = it.filter.copy(tagIds = emptyList()), absoluteIndex = 0, currentQuoteId = null) }
+        }
+    }
 
     fun applyFilter(filter: ReelFilter) {
         viewModelScope.launch {
             store.update { it.copy(filter = filter, absoluteIndex = 0, currentQuoteId = null) }
         }
-        closeFilterSheet()
+        _state.value = _state.value.copy(isBookSheetOpen = false, isTagSheetOpen = false)
     }
 
     fun clearFilter() = applyFilter(ReelFilter())

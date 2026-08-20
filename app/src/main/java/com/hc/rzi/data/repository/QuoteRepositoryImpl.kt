@@ -80,10 +80,10 @@ class QuoteRepositoryImpl @Inject constructor(
     override fun observeReelIds(mode: ReelMode, filter: ReelFilter): Flow<List<Long>> =
         when (mode) {
             ReelMode.SHUFFLE -> quoteDao.observeReelIdsForShuffle(
-                filter.bookId, filter.tagIds, filter.tagIds.size,
+                filter.bookIds, filter.bookIds.size, filter.tagIds, filter.tagIds.size,
             )
             ReelMode.LINEAR -> quoteDao.observeReelIdsForLinear(
-                filter.bookId, filter.tagIds, filter.tagIds.size,
+                filter.bookIds, filter.bookIds.size, filter.tagIds, filter.tagIds.size,
             )
         }
 
