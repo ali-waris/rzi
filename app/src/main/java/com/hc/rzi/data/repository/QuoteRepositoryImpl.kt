@@ -154,6 +154,16 @@ class QuoteRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun delete(ids: Set<Long>) {
+        if (ids.isEmpty()) return
+        db.withTransaction {
+            ftsDao.deleteByIds(ids)
+            quoteDao.deleteByIds(ids)
+            bookDao.deleteOrphans()
+            tagDao.deleteOrphans()
+        }
+    }
+
     override fun bookSuggestions(prefix: String): Flow<List<String>> = bookDao.suggest(prefix)
 
     override fun allTagNames(): Flow<List<String>> = tagDao.allNames()

@@ -32,6 +32,8 @@ interface QuoteRepository {
 
     suspend fun delete(id: Long)
 
+    suspend fun delete(ids: Set<Long>)
+
     fun bookSuggestions(prefix: String): Flow<List<String>>
 
     fun allTagNames(): Flow<List<String>>

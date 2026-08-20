@@ -17,7 +17,9 @@ data class LibraryUiState(
     val isChangePinOpen: Boolean = false,
     val isBookSheetOpen: Boolean = false,
     val isTagSheetOpen: Boolean = false,
+    val selectedIds: Set<Long> = emptySet(),
 ) {
+    val isSelectionMode: Boolean get() = selectedIds.isNotEmpty()
     val isSearching: Boolean
         get() = query.isNotBlank() || selectedTagIds.isNotEmpty() || selectedBookIds.isNotEmpty()
 

@@ -1,5 +1,6 @@
 package com.hc.rzi.ui.library
 
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -32,19 +34,36 @@ fun QuoteRowItem(
     query: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isSelected: Boolean = false,
+    isSelectionMode: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
     Card(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = 6.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.md, vertical = 6.dp)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick,
+            ),
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainerLow),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) scheme.secondaryContainer else scheme.surfaceContainerLow,
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Row(
             modifier = Modifier.padding(Spacing.md),
             verticalAlignment = Alignment.Top,
         ) {
+            if (isSelectionMode) {
+                Checkbox(
+                    checked = isSelected,
+                    onCheckedChange = { onClick() },
+                )
+                Spacer(Modifier.width(Spacing.sm))
+            }
             Surface(
                 shape = MaterialTheme.shapes.small,
                 color = scheme.primaryContainer,

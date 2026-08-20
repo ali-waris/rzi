@@ -57,7 +57,7 @@ class LibraryViewModel @Inject constructor(
     private val _messages = Channel<String>(Channel.BUFFERED)
     val messages = _messages.receiveAsFlow()
 
-    private var lastDeleted: Quote? = null
+    private var lastDeleted: List<Quote> = emptyList()
 
     private val searchKey: Flow<SearchKey> = _state
         .map { SearchKey(it.query, it.selectedTagIds, it.selectedBookIds) }
@@ -87,7 +87,15 @@ class LibraryViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         adminRepository.session
-            .onEach { isAdmin -> _state.value = _state.value.copy(isAdmin = isAdmin) }
+            .onEach { isAdmin ->
+                _state.update { current ->
+                    if (!isAdmin && current.selectedIds.isNotEmpty()) {
+                        current.copy(isAdmin = isAdmin, selectedIds = emptySet())
+                    } else {
+                        current.copy(isAdmin = isAdmin)
+                    }
+                }
+            }
             .launchIn(viewModelScope)
     }
 
@@ -145,8 +153,43 @@ class LibraryViewModel @Inject constructor(
         _state.update { it.copy(isChangePinOpen = false) }
     }
 
+    fun toggleSelection(id: Long) {
+        if (!_state.value.isAdmin) return
+        _state.update { current ->
+            val selected = current.selectedIds
+            current.copy(selectedIds = if (id in selected) selected - id else selected + id)
+        }
+    }
+
+    fun onQuoteLongPress(id: Long) {
+        if (!_state.value.isAdmin) return
+        val current = _state.value.selectedIds
+        if (current.isEmpty()) {
+            _state.update { it.copy(selectedIds = setOf(id)) }
+        } else {
+            toggleSelection(id)
+        }
+    }
+
+    fun clearSelection() {
+        _state.update { it.copy(selectedIds = emptySet()) }
+    }
+
+    fun deleteSelected() {
+        val ids = _state.value.selectedIds
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            val quotes = ids.mapNotNull { id -> repository.quoteById(id) }
+            lastDeleted = quotes
+            repository.delete(ids)
+            _state.update { it.copy(selectedIds = emptySet()) }
+            val message = if (quotes.size == 1) DELETE_MESSAGE else "${quotes.size} deleted"
+            _messages.send(message)
+        }
+    }
+
     fun delete(quote: Quote) {
-        lastDeleted = quote
+        lastDeleted = listOf(quote)
         viewModelScope.launch {
             deleteQuote(quote.id)
             _messages.send(DELETE_MESSAGE)
@@ -154,17 +197,20 @@ class LibraryViewModel @Inject constructor(
     }
 
     fun undoDelete() {
-        val quote = lastDeleted ?: return
-        lastDeleted = null
+        val quotes = lastDeleted
+        if (quotes.isEmpty()) return
+        lastDeleted = emptyList()
         viewModelScope.launch {
-            saveQuote(
-                QuoteDraft(
-                    text = quote.text,
-                    bookName = quote.bookName,
-                    pageNumber = quote.pageNumber,
-                    tags = quote.tags,
+            quotes.forEach { quote ->
+                saveQuote(
+                    QuoteDraft(
+                        text = quote.text,
+                        bookName = quote.bookName,
+                        pageNumber = quote.pageNumber,
+                        tags = quote.tags,
+                    )
                 )
-            )
+            }
         }
     }
 

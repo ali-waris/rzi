@@ -47,6 +47,7 @@ class SaveQuoteTest {
             flowOf(emptyList())
         override suspend fun quoteById(id: Long): Quote? = null
         override suspend fun delete(id: Long) = Unit
+        override suspend fun delete(ids: Set<Long>) = Unit
         override fun bookSuggestions(prefix: String): Flow<List<String>> = flowOf(emptyList())
         override fun allTagNames(): Flow<List<String>> = flowOf(emptyList())
         override fun observeTagFilters(): Flow<List<TagFilter>> = flowOf(emptyList())
