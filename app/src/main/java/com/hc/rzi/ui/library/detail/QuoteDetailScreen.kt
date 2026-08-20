@@ -5,13 +5,14 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,11 +22,10 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -41,6 +41,8 @@ import androidx.compose.material.icons.filled.FormatAlignCenter
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -69,7 +71,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -79,13 +80,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hc.rzi.domain.model.Quote
 import com.hc.rzi.ui.components.EmptyState
 import com.hc.rzi.ui.components.TagChip
 import com.hc.rzi.ui.theme.Spacing
-import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -403,6 +405,7 @@ private fun QuoteBottomBar(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun QuoteReader(
     quote: Quote,
@@ -474,13 +477,14 @@ private fun QuoteReader(
 
                 if (tags.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(Spacing.lg))
-                    LazyRow(
+                    FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                        modifier = Modifier.padding(horizontal = Spacing.lg),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = Spacing.lg),
                     ) {
-                        items(tags.size) { index ->
-                            TagChip(tag = tags[index])
-                        }
+                        tags.forEach { tag -> TagChip(tag = tag) }
                     }
                     Spacer(modifier = Modifier.height(Spacing.lg))
                 }
@@ -513,15 +517,17 @@ private fun QuoteEditor(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalAlignment = Alignment.Top,
+                .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             BookNameField(
                 value = state.bookName,
                 suggestions = state.bookSuggestions,
                 error = state.errors.bookName,
                 onValueChange = onBookNameChange,
+                tagCount = onTagCount,
+                onOpenTags = onOpenTags,
                 modifier = Modifier.weight(1f),
             )
 
@@ -532,25 +538,10 @@ private fun QuoteEditor(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 isError = state.errors.pageNumber != null,
                 supportingText = state.errors.pageNumber?.let { message -> { Text(message) } },
-                modifier = Modifier.width(80.dp),
+                modifier = Modifier.width(72.dp),
                 singleLine = true,
             )
-
-            IconButton(
-                onClick = onOpenTags,
-                modifier = Modifier.padding(top = 8.dp),
-            ) {
-                BadgeBox(count = onTagCount) {
-                    Icon(
-                        Icons.AutoMirrored.Outlined.Label,
-                        contentDescription = "Tags",
-                        tint = scheme.onSurfaceVariant,
-                    )
-                }
-            }
         }
-
-        HorizontalDivider(color = scheme.outlineVariant)
 
         Box(
             modifier = Modifier
@@ -596,26 +587,24 @@ private fun QuoteEditor(
 
 @Composable
 private fun BadgeBox(count: Int, content: @Composable () -> Unit) {
-    Box {
-        content()
-        if (count > 0) {
-            Text(
-                text = count.toString(),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier
-                    .padding(start = Spacing.md)
-                    .align(Alignment.TopEnd)
-                    .background(
-                        color = MaterialTheme.colorScheme.tertiary,
-                        shape = RoundedCornerShape(Spacing.xxl)
+    BadgedBox(
+        badge = {
+            if (count > 0) {
+                Badge(
+                    containerColor = MaterialTheme.colorScheme.tertiary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ) {
+                    Text(
+                        text = count.toString(),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 9.sp,
+                        ),
                     )
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                    .then(
-                        Modifier.padding(0.dp)
-                    ),
-            )
-        }
+                }
+            }
+        },
+    ) {
+        content()
     }
 }
 
@@ -761,6 +750,8 @@ private fun BookNameField(
     error: String?,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
+    tagCount: Int? = null,
+    onOpenTags: (() -> Unit)? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
     var debouncedValue by remember { mutableStateOf(value) }
@@ -785,6 +776,19 @@ private fun BookNameField(
             isError = error != null,
             supportingText = error?.let { message -> { Text(message) } },
             singleLine = true,
+            trailingIcon = if (onOpenTags != null && tagCount != null) {
+                {
+                    IconButton(onClick = onOpenTags) {
+                        BadgeBox(count = tagCount) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.Label,
+                                contentDescription = "Tags",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            } else null,
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),

@@ -108,6 +108,19 @@ fun QuoteRowItem(
                                 )
                             }
                         }
+                        if (quote.tags.size > 3) {
+                            Surface(
+                                shape = MaterialTheme.shapes.extraSmall,
+                                color = scheme.surfaceContainerHighest,
+                                contentColor = scheme.onSurfaceVariant,
+                            ) {
+                                Text(
+                                    text = "...",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                )
+                            }
+                        }
                     }
                 }
             }
