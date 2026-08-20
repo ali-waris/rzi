@@ -18,6 +18,6 @@ data class QuoteDraft(
     val tags: List<String>,
 )
 
-data class Book(val id: Long, val name: String)
+data class Book(val id: Long, val name: String, val quoteCount: Int = 0)
 
 data class TagFilter(val id: Long, val name: String, val usageCount: Int)

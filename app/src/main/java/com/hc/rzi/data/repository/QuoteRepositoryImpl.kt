@@ -174,7 +174,7 @@ class QuoteRepositoryImpl @Inject constructor(
         }
 
     override fun observeBooks(): Flow<List<Book>> =
-        bookDao.observeAll().map { books -> books.map { Book(id = it.id, name = it.name) } }
+        bookDao.observeAll().map { books -> books.map { Book(id = it.id, name = it.name, quoteCount = it.quoteCount) } }
 
     override fun observeQuoteCount(): Flow<Int> = quoteDao.observeCount()
 
